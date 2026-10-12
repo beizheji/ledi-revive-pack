@@ -16,8 +16,10 @@
 #   行尾被 git 转换 = 远端下载的 scatter 对不上登记值）
 MT6580_Android_scatter.txt -text
 
-# CSV 保持 CRLF（与 api文档仓 的 .gitattributes 口径一致）
-*.csv text eol=crlf
+# CSV 是机器读的生成物（python csv 模块按 RFC 4180 输出 CRLF）—— 与 api文档仓 同法 -text，
+# ★ 别写成 `text eol=crlf`：那会把 CRLF 折成 LF 存库，两仓同名产物（06_文档/api/endpoints.csv）
+#   在 raw 下载下 md5 就对不上了（实测 43401 B/LF vs 43601 B/CRLF）。
+*.csv -text
 
 # 二进制（不做行尾转换、不做文本 diff）
 # 注：*.apk 理论上不进本仓（APK 走 ledi-apk-archive 的 Release，见 .gitignore）；
