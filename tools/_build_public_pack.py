@@ -5,8 +5,9 @@
 
 输入全部走环境变量（本仓不带任何本机路径）：
 
+  LEDI_SOC          刷机件落到 01_刷机包/<SoC>/ —— 缺省 MTK6580（以后加 6572 只改这一项）
   LEDI_SRC_BOOT     原 boot.img（v8）文件路径
-  LEDI_SRC_SCATTER  MT6580_Android_scatter.txt 路径
+  LEDI_SRC_SCATTER  原 scatter 路径（文件名原样落到 01_刷机包/<SoC>/）
   LEDI_SRC_ANIM     原版开机动画 bootanimation.zip 路径
   LEDI_SRC_COVER    屏保原图（1024x1024 jpg）路径
   LEDI_OEM_APK_DIR  （可缺省）改造工程目录，仅供注释追溯
@@ -23,6 +24,7 @@ import sys
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 OUT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SOC = os.environ.get("LEDI_SOC") or "MTK6580"      # ★ 刷机件按主控芯片分栏
 SRC_BOOT = os.environ.get("LEDI_SRC_BOOT") or ""
 SRC_SCATTER = os.environ.get("LEDI_SRC_SCATTER") or ""
 SRC_ANIM = os.environ.get("LEDI_SRC_ANIM") or ""
@@ -89,9 +91,9 @@ def main():
     check("原版开机动画", SRC_ANIM, _expect_md5(SRC_ANIM))
     check("屏保原图", SRC_COVER)
 
-    print("\n== 2. 落 01_刷机包 ==")
-    copy(SRC_BOOT, os.path.join(OUT, "01_刷机包", "boot.img"))
-    copy(SRC_SCATTER, os.path.join(OUT, "01_刷机包", "MT6580_Android_scatter.txt"))
+    print("\n== 2. 落 01_刷机包/%s ==" % SOC)
+    copy(SRC_BOOT, os.path.join(OUT, "01_刷机包", SOC, "boot.img"))
+    copy(SRC_SCATTER, os.path.join(OUT, "01_刷机包", SOC, os.path.basename(SRC_SCATTER)))
 
     print("\n== 3. 落 02_素材 ==")
     copy(SRC_ANIM, os.path.join(OUT, "02_素材", "开机动画_bootanimation.zip"))

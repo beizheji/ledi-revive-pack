@@ -18,7 +18,7 @@
 |---|---|
 | **先看一遍这个包长什么样** | 👉 [`预览.html`](预览.html)（两个真机 App 的说明与指纹） |
 | **一步步把机器人救活** | 👉 [`复活指南.md`](复活指南.md) |
-| 拿现成刷机包直接刷 | `01_刷机包/`（含 `boot.img` + scatter + 刷入说明） |
+| 拿现成刷机包直接刷 | `01_刷机包/` —— **按 SoC 分栏**，本机型用 `MTK6580/`（`boot.img` + scatter + 刷入说明） |
 | 装机器人 App（免编译） | 先到 [APK 存档仓的 Release](https://github.com/beizheji/ledi-apk-archive/releases/tag/apk-archive-2026-10-12) 下载，装法见 [`复活指南.md`](复活指南.md) 第 3 步 |
 | **自己编译机器人 App** | `07_源码/` + [`07_源码/编译说明.md`](07_源码/编译说明.md) |
 | 看机器人能干什么（接口总表） | `06_文档/` |
@@ -32,9 +32,11 @@
 ```
 乐迪公开版刷机包/
 ├── 01_刷机包/                    ← 用 SP Flash Tool 刷进 BOOT 分区（复活的第一步）
-│   ├── boot.img                    6650138 B  md5 34c0a9a7…
-│   ├── MT6580_Android_scatter.txt  10326 B    md5 c24bf96d…
-│   └── 刷入说明.txt                 刷机步骤 + 逐条差异
+│   ├── README.md                   分栏说明：刷机件按主控芯片分类
+│   └── MTK6580/                    ← 本机型（vinci_portal / MT6580 / Android 5.1）
+│       ├── boot.img                    6650138 B  md5 34c0a9a7…
+│       ├── MT6580_Android_scatter.txt  10326 B    md5 c24bf96d…
+│       └── 刷入说明.txt                 刷机步骤 + 逐条差异
 ├── 02_素材/                      ← 不刷机也能用，靠 adb 落地
 │   ├── 开机动画_bootanimation.zip   5979550 B  原版（91 帧 800×480 红色乐迪飞机）
 │   ├── 屏保_800x480.jpg             机器人屏直接用（按填满缩放后居中裁切）
@@ -76,8 +78,8 @@
 
 | 文件 | 大小 | md5 |
 |---|---|---|
-| `01_刷机包/boot.img` | 6650138 | `34c0a9a7665895ec45d20aa91f0e5f07` |
-| `01_刷机包/MT6580_Android_scatter.txt` | 10326 | `c24bf96d3a5b9c66170410f8c427b2b5` |
+| `01_刷机包/MTK6580/boot.img` | 6650138 | `34c0a9a7665895ec45d20aa91f0e5f07` |
+| `01_刷机包/MTK6580/MT6580_Android_scatter.txt` | 10326 | `c24bf96d3a5b9c66170410f8c427b2b5` |
 | `02_素材/开机动画_bootanimation.zip` | 5979550 | `4644859f911a6c351252a95f4a970103` |
 | `02_素材/屏保_原图1024x1024.jpg` | 72889 | `9a70b7576fff284eba5cce6b03d357e4` |
 | `03_App/LediAgent.public-v223.apk` | 17756662 | `a775f93ba4d5b99cf37721d91914699c` |
@@ -89,7 +91,7 @@
 
 ## 关于那颗 BOOT：root adb + FTP 是**故意留的**
 
-刷完 `01_刷机包/boot.img`，机器人会得到：
+刷完 `01_刷机包/MTK6580/boot.img`，机器人会得到：
 
 - **免授权的 root adb**（USB 与 WiFi `5555` 双通道）—— 复活后连电脑、装 App、传文件全靠它；
 - 开机自启的 **root 权限 FTP（`0.0.0.0:2121`）** —— 没有 adb 时的文件通道。

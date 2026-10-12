@@ -9,7 +9,7 @@ echo ==========================================================
 echo.
 echo   Applies : boot animation + wallpaper + app
 echo   Needs   : adb in PATH, robot adbd runs as root
-echo             (root adb comes with the boot.img in 01_)
+echo             (root adb comes with the boot.img in 01_/MTK6580)
 echo   Default : DRY RUN - prints commands, changes nothing
 echo.
 

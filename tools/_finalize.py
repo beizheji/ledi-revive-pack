@@ -41,7 +41,7 @@ def main():
     print("== 1. 整理编码/行尾 ==")
     # ★ SP Flash Tool 的刷机输入一个字节都不能动（scatter 被改过行尾会导致 md5 对不上，
     #   使用者按 README 校验值核对时直接 FAIL）。清单式排除，别靠扩展名猜。
-    DO_NOT_TOUCH = {"01_刷机包/MT6580_Android_scatter.txt"}
+    DO_NOT_TOUCH = {"01_刷机包/MTK6580/MT6580_Android_scatter.txt"}
     for base, _, files in os.walk(ROOT):
         for fn in sorted(files):
             p = os.path.join(base, fn)
@@ -80,7 +80,9 @@ def main():
                     print("  [FAIL] %s UTF-8 解不开" % rel)
 
     need = ["README.md", "脱敏报告.md",
-            "01_刷机包/boot.img", "01_刷机包/MT6580_Android_scatter.txt", "01_刷机包/刷入说明.txt",
+            "01_刷机包/README.md",
+            "01_刷机包/MTK6580/boot.img", "01_刷机包/MTK6580/MT6580_Android_scatter.txt",
+            "01_刷机包/MTK6580/刷入说明.txt",
             "02_素材/开机动画_bootanimation.zip", "02_素材/屏保_800x480.jpg", "02_素材/屏保_原图1024x1024.jpg",
             "03_App/LediAgent.public-v223.apk", "03_App/脱敏说明.txt",
             "04_脚本/一键落地.bat", "04_脚本/_apply_public.py", "tools/_build_public_pack.py"]
