@@ -1,8 +1,16 @@
 # 默认：文本 LF
 * text=auto eol=lf
 
-# Windows 批处理：cmd 只认 CRLF（且内容必须是纯 ASCII，见 04_脚本/一键落地.bat）
-*.bat text eol=crlf
+# Windows 批处理：cmd 只认 CRLF（内容还必须纯 ASCII，见 04_脚本/一键落地.bat）
+# ★ 用 -text，而不是 `text eol=crlf`：
+#   实测 `text eol=crlf` 只把 LF 存进仓库 —— git clone 与 GitHub「Download ZIP」
+#   都会转回 CRLF，但 raw.githubusercontent.com 直接发 blob 原文，
+#   ⇒ 从 raw 链接取这个 .bat 的人会拿到 LF 行尾。
+#   本脚本大量使用 goto :label，cmd 解析 LF 行尾的批处理标签会失败
+#   （The system cannot find the batch label specified）。
+#   ⇒ 与下方 scatter 同法：仓库内直接存 CRLF 字节，各渠道完全一致。
+*.bat -text
+*.cmd -text
 
 # ★ 刷机工具输入：逐字节保护（SP Flash Tool 使用者会按 README 校验值 md5 核对，
 #   行尾被 git 转换 = 远端下载的 scatter 对不上登记值）
