@@ -1,0 +1,45 @@
+LediAgent 公开版 APK · 脱敏说明
+================================
+
+文件：LediAgent.public-v223.apk
+包名：com.ledi.agent
+版本：versionCode 223 / versionName 1.0-v223-public
+大小：17756662 字节
+md5 ：a775f93ba4d5b99cf37721d91914699c
+签名：platform（AOSP 公开测试密钥，CN=Android；证书 SHA-256
+      c8a2e9bccf597c2fb6dc66bee293fc13f2fc47ec77bc6b2b0d52c11f51192ab8）
+
+【这一版相对自用版 v222 只改了一处】
+  assets/robot_ui.html：
+    var DEF = "http://192.168.1.x:8899"            -> "http://192.168.1.100:8899"
+    placeholder="192.168.1.x:8899"                 -> "192.168.1.100:8899"
+  （192.168.1.x 是原机主的局域网 IP，不该随包发出去；改成通用示例地址）
+
+  逐条目比对 v222 与 v223-public：内容不同的只有
+      AndroidManifest.xml（版本号 222->223）
+      assets/robot_ui.html（上面那两处）
+      META-INF/*（重签名）
+  其余 57 个条目逐字节相同。
+
+【已核查为「不含」的东西】
+  - 没有任何 API Key / token / Bearer 串（全包逐字节扫过）
+  - 没有原机主的录音、TTS 缓存、采样文件（那些本来就在项目目录里，从未打过包）
+  - 全包内已无 192.168.1.x（0 次命中）；剩下的 192.168.1.100 / 192.168.1.50
+    都是示例占位地址，0.0.0.0 / 127.0.0.1 / 255.255.255.255 / 192.168.44.1
+    是协议常量或蓝牙网络共享的固定网关，非个人信息
+
+【如实说明：包里有什么是「原厂自带」的】
+  - assets/WakeUp.bin、baidu_speech_grammar.bsg、bds-easr-license.lic：
+    原厂唤醒/离线识别资源（license 与原厂包内那份逐字节相同，512 字节）
+  - lib/armeabi/*.so：百度语音、灵云 TTS、串口 等原厂 SDK 运行库
+  - classes2.dex / classes3.dex：由原厂 App 的 dex 合并而来
+    （本 App 要驱动原厂的 EngineService / 串口，必须带上这套代码）
+  也就是说：这个 APK 内含原厂 App 的代码与 SDK。
+    处理口径（2026-10-12 定）：原厂厂商已停止运营两年余、其 API 服务方仍在运行，
+    故这些原厂代码/SDK 予以保留，并随本开源仓一同公开；
+    权利归原权利人，保留目的与边界见仓库根目录 NOTICE.md。
+
+【关于部署】
+  本包只落盘、没有往机器人上装（按项目方要求，避免影响在役设备）。真机上装：
+      adb install -r LediAgent.public-v223.apk
+  完整复活步骤见仓库根目录 复活指南.md。

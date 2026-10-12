@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><!-- you should replace the root tag and put your stuff bellow  -->
+<resources>
+    <array name="lowest">
+        <item>calm</item>
+        <item>dissatisfied</item>
+        <item>confused</item>
+    </array>
+
+    <array name="highest">
+        <item>calm</item>
+        <item>dissatisfied</item>
+        <item>happy</item>
+        <item>excite</item>
+    </array>
+
+    <array name="middle">
+        <item>dissatisfied</item>
+        <item>happy</item>
+        <item>excite</item>
+        <item>desire</item>
+    </array>
+</resources>

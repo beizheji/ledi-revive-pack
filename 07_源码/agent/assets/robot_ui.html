@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>乐迪 · 控制台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f1115'/%3E%3Ccircle cx='11' cy='14' r='3.4' fill='%234cc2ff'/%3E%3Ccircle cx='21' cy='14' r='3.4' fill='%234cc2ff'/%3E%3Crect x='9' y='22' width='14' height='2.6' rx='1.3' fill='%2335d07f'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d222b; --line:#262d3a;
+    --fg:#e8ecf3; --dim:#93a0b4; --acc:#4cc2ff; --ok:#35d07f; --warn:#ffb020; --bad:#ff5c5c;
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  body{padding:0 0 40px}
+  a{color:var(--acc)}
+  .wrap{max-width:980px;margin:0 auto;padding:0 12px}
+
+  header{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .hd{display:flex;align-items:center;gap:10px;padding:10px 0}
+  .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#4cc2ff,#7a5cff);
+    display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
+  .hd h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.3px}
+  .hd .sub{font-size:11px;color:var(--dim);margin-top:1px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:0 0 auto}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 4px rgba(53,208,127,.15)}
+  .dot.off{background:var(--bad);box-shadow:0 0 0 4px rgba(255,92,92,.15)}
+  .grow{flex:1}
+
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 0 12px}
+  .addr{display:flex;gap:6px;align-items:center;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:5px 8px;font-size:12px;color:var(--dim)}
+  .addr input{background:transparent;border:0;color:var(--fg);font:inherit;width:170px;outline:none}
+
+  .chips{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;-webkit-overflow-scrolling:touch}
+  .chips::-webkit-scrollbar{height:0}
+  .chip{white-space:nowrap;background:var(--card);border:1px solid var(--line);color:var(--fg);
+    padding:7px 13px;border-radius:999px;font-size:13px;cursor:pointer}
+  .chip.act{background:rgba(76,194,255,.14);border-color:rgba(76,194,255,.5);color:#bfe6ff}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+  .card h2{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--dim);letter-spacing:.4px;
+    display:flex;align-items:center;gap:6px}
+  .sec{margin:10px 0 16px}
+
+  .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+  .kv .k{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .kv .k b{display:block;font-size:11px;color:var(--dim);font-weight:500}
+  .kv .k span{font-size:15px;font-weight:600}
+
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+    background:var(--card2);color:var(--fg);padding:8px 12px;transition:.12s}
+  button:hover{border-color:#3b4557}
+  button:active{transform:scale(.97)}
+  button[disabled]{opacity:.45;cursor:not-allowed}
+  button.p{background:linear-gradient(135deg,#2b7fd4,#3aa0ff);border-color:transparent;color:#fff;font-weight:600}
+  button.w{background:linear-gradient(135deg,#c8871a,#e0a72c);border-color:transparent;color:#1a1206;font-weight:600}
+  button.d{border-color:rgba(255,92,92,.45);color:#ffbcbc}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .vbtn{padding:8px 6px;text-align:center;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vbtn.sel{border-color:var(--acc);background:rgba(76,194,255,.14)}
+
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .row label{font-size:12px;color:var(--dim);min-width:56px}
+  input[type=text],textarea,select,input[type=number]{background:var(--card2);border:1px solid var(--line);
+    color:var(--fg);border-radius:10px;padding:9px 11px;font:inherit;outline:none;width:100%}
+  input[type=range]{width:100%;accent-color:var(--acc)}
+  textarea{resize:vertical;min-height:64px}
+
+  .log{background:#0b0d11;border:1px solid var(--line);border-radius:10px;padding:10px;
+    font:12px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#9fb0c6;max-height:190px;overflow:auto;
+    white-space:pre-wrap;word-break:break-all}
+  .log .t{color:#5d6b80}
+  .log .e{color:#ff9b9b}
+  .log .o{color:#8bd6a0}
+  details summary{cursor:pointer;color:var(--dim);font-size:13px;padding:4px 0}
+  .note{font-size:11.5px;color:var(--dim);line-height:1.55}
+  .warnbox{border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.07)}
+
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(120%);
+    background:#20262f;border:1px solid var(--line);color:var(--fg);padding:10px 16px;border-radius:12px;
+    font-size:13px;z-index:60;transition:.22s;max-width:88vw;text-align:center}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.err{border-color:rgba(255,92,92,.5);background:#2a1b1d}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <div class="logo">🤖</div>
+    <div>
+      <h1 id="rname">乐迪 · 控制台</h1>
+      <div class="sub" id="rsub">正在连接…</div>
+    </div>
+    <div class="grow"></div>
+    <div class="dot" id="dot"></div>
+  </div>
+  <div class="wrap bar">
+    <div class="addr">
+      <span>地址</span>
+      <input id="host" type="text" spellcheck="false" placeholder="192.168.1.100:8899">
+      <button id="setHost" style="padding:4px 9px;font-size:12px">换</button>
+    </div>
+    <button id="awake" class="w hide">☀️ 叫醒</button>
+    <button id="stop" class="d">⏹ 停止</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="chips" id="tabs">
+    <div class="chip act" data-t="panel">状态</div>
+    <div class="chip" data-t="faces">表情</div>
+    <div class="chip" data-t="motions">动作</div>
+    <div class="chip" data-t="say">说话</div>
+    <div class="chip" data-t="light">灯光</div>
+    <div class="chip" data-t="idle">待机</div>
+    <div class="chip" data-t="emo">情绪</div>
+    <div class="chip" data-t="more">更多</div>
+  </div>
+
+  <!-- ================= 状态 ================= -->
+  <section class="sec" id="s-panel">
+    <div class="card">
+      <h2>机器人状态 <span class="note" id="ago"></span></h2>
+      <div class="kv" id="kv">
+        <div class="k"><b>屏保</b><span id="v_sleep">–</span></div>
+        <div class="k"><b>唤醒引擎</b><span id="v_wake">–</span></div>
+        <div class="k"><b>常识别</b><span id="v_cont">–</span></div>
+        <div class="k"><b>待机活泼</b><span id="v_live">–</span></div>
+        <div class="k"><b>当前情绪</b><span id="v_emo">–</span></div>
+        <div class="k"><b>心跳</b><span id="v_beats">–</span></div>
+      </div>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <div class="card">
+        <h2>原厂 SDK 清单</h2>
+        <div class="btns">
+          <button id="caps">读 /sdk/caps</button>
+          <button id="stat2">读 /sdk/stat</button>
+        </div>
+        <p class="note" style="margin:9px 0 0">这两条读的是原厂 xldbasesdk 的自述能力，不是我们重写的通道。</p>
+      </div>
+      <div class="card">
+        <h2>地址（手机也能开）</h2>
+        <p class="note">把下面这条粘到手机/平板浏览器，同一个 WiFi 就能控制，<b>不用装任何 App</b>。</p>
+        <div class="btns" style="margin-top:8px">
+          <button id="copyUrl">📋 复制地址</button>
+        </div>
+        <p class="note" id="lanurl" style="margin:8px 0 0;color:var(--acc);word-break:break-all">–</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 表情 ================= -->
+  <section class="sec hide" id="s-faces">
+    <div class="card">
+      <h2>表情 <span class="note" id="fcount"></span></h2>
+      <div class="row">
+        <input type="text" id="fq" placeholder="搜索…（如 happy / angry / cry）">
+        <button id="frnd" class="p">随机</button>
+      </div>
+      <div class="grid" id="fgrid" style="grid-template-columns:repeat(auto-fill,minmax(94px,1fr))"></div>
+    </div>
+  </section>
+
+  <!-- ================= 动作 ================= -->
+  <section class="sec hide" id="s-motions">
+    <div class="card">
+      <h2>动作 <span class="note" id="mcount"></span></h2>
+      <div class="row">
+        <input type="text" id="mq" placeholder="搜索动作…">
+        <button id="mrnd" class="p">随机</button>
+      </div>
+      <div class="grid" id="mgrid" style="grid-template-columns:repeat(auto-fill,minmax(104px,1fr))"></div>
+      <p class="note" style="margin:10px 0 0">动作名与原厂 <code>MotionController</code> 逐字一致；走路类（walk/run）会真的动起来，注意周边。</p>
+    </div>
+  </section>
+
+  <!-- ================= 说话 ================= -->
+  <section class="sec hide" id="s-say">
+    <div class="card">
+      <h2>让它说话</h2>
+      <textarea id="txt" placeholder="输入要说的话，回车或点「说」发送"></textarea>
+      <div class="row" style="margin:8px 0 0">
+        <button id="say" class="p">🗣 说</button>
+        <button id="shut">🤐 闭嘴</button>
+        <button id="ttsst">读 /ttsstatus</button>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <label>音量 <b id="volv">8</b></label>
+        <input type="range" id="vol" min="0" max="15" value="8" style="flex:1;min-width:160px">
+        <button id="volset" style="padding:6px 11px">设置</button>
+      </div>
+      <p class="note">默认走机器人自带合成（local）；网关合成只在配了电脑端服务时才有意义。</p>
+    </div>
+  </section>
+
+  <!-- ================= 灯光 ================= -->
+  <section class="sec hide" id="s-light">
+    <div class="card">
+      <h2>灯光（原厂广播）</h2>
+      <div class="row"><label>颜色</label>
+        <div class="btns" id="lcolor">
+          <button data-c="r">红</button><button data-c="g">绿</button><button data-c="b">蓝</button>
+          <button data-c="y">黄</button><button data-c="p">紫</button><button data-c="all">全</button>
+        </div>
+      </div>
+      <div class="row"><label>效果</label>
+        <div class="btns" id="lact">
+          <button data-a="on">常亮</button><button data-a="blink.slow">慢闪</button>
+          <button data-a="blink.fast">快闪</button><button data-a="off">关</button>
+        </div>
+      </div>
+      <p class="note">颜色与实际灯的对应关系由原厂决定（广播 <code>com.auric.intell.xld.os.led.&lt;color&gt;.&lt;action&gt;</code>）。</p>
+    </div>
+  </section>
+
+  <!-- ================= 待机 ================= -->
+  <section class="sec hide" id="s-idle">
+    <div class="card">
+      <h2>待机活泼化</h2>
+      <div class="row">
+        <button id="liveon" class="p">开</button>
+        <button id="liveoff">关</button>
+        <span class="note" id="livest">–</span>
+      </div>
+      <div class="row" style="margin-top:12px"><label>表情间隔</label>
+        <input type="range" id="ie" min="1" max="20" value="3" style="flex:1;min-width:150px"><b id="iev">3</b><span class="note">秒</span>
+      </div>
+      <div class="row"><label>动作间隔</label>
+        <input type="range" id="ime" min="2" max="60" value="6" style="flex:1;min-width:150px"><b id="imev">6</b><span class="note">秒</span>
+      </div>
+      <div class="row"><label>动作幅度</label>
+        <input type="range" id="ideg" min="1" max="15" value="5" style="flex:1;min-width:150px"><b id="idegv">5</b><span class="note">度</span>
+      </div>
+      <div class="row"><button id="liveapply" class="p">应用</button>
+        <span class="note">幅度就是关节摆动的角度，5° 只能看出"轻轻地动"。</span></div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h2>语音引擎</h2>
+      <div class="row">
+        <button id="wakeon">唤醒引擎：开</button>
+        <button id="wakeoff">唤醒引擎：关</button>
+      </div>
+      <div class="row">
+        <button id="conton">常识别：开</button>
+        <button id="contoff">常识别：关</button>
+      </div>
+      <p class="note">两者共用同一路麦克风，<b>开常识别会停掉唤醒引擎</b>（必须先选一个）。常识别＝听到才发给 AI，听不到不浪费额度。</p>
+    </div>
+  </section>
+
+  <!-- ================= 情绪 ================= -->
+  <section class="sec hide" id="s-emo">
+    <div class="card">
+      <h2>情绪（词表来自原厂 emotions.xml）</h2>
+      <div class="row"><span class="note">当前：</span><b id="emonow">–</b><span class="note" id="emowhy"></span></div>
+      <div class="grid" id="emogrid" style="grid-template-columns:repeat(auto-fill,minmax(88px,1fr))"></div>
+      <div class="row" style="margin-top:14px"><label>愉悦度</label>
+        <input type="range" id="val" min="0" max="100" value="50" style="flex:1;min-width:140px"><b id="valv">0.50</b>
+      </div>
+      <div class="row"><label>唤醒度</label>
+        <input type="range" id="aro" min="0" max="100" value="50" style="flex:1;min-width:140px"><b id="arov">0.50</b>
+      </div>
+      <div class="row">
+        <button id="emoapply" class="p">按滑条应用</button>
+        <button id="emoreset">回到平静</button>
+      </div>
+      <p class="note">原厂情绪靠云端打分，离线不可用；这里是本地 valence/arousal，<b>情绪名→表情的对应是我们配的</b>，不是原厂绑定。</p>
+    </div>
+  </section>
+
+  <!-- ================= 更多 ================= -->
+  <section class="sec hide" id="s-more">
+    <div class="card warnbox">
+      <h2>⚠️ 深睡</h2>
+      <div class="row">
+        <button id="dson" class="w">立刻深睡</button>
+        <button id="dsoff">唤醒（解冻）</button>
+        <span class="note" id="dsst">–</span>
+      </div>
+      <p class="note"><b>深睡会冻结原厂主进程</b>：头顶键由原厂进程发广播，冻住之后<b>长按也叫不醒</b>，
+      只能用本页的「唤醒（解冻）」或 adb。<b>本页是它的远程解药，别关这个页面。</b></p>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h2>原始状态（排查用）</h2>
+      <details><summary>/health</summary><div class="log" id="rawHealth">–</div></details>
+      <details><summary>/live</summary><div class="log" id="rawLive">–</div></details>
+      <details><summary>/sleep</summary><div class="log" id="rawSleep">–</div></details>
+      <details><summary>/emotion</summary><div class="log" id="rawEmo">–</div></details>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h2>最近请求（进程外可对差）</h2>
+      <div class="log" id="log">–</div>
+      <div class="btns" style="margin-top:8px"><button id="clrlog">清空</button></div>
+    </div>
+    <p class="note" style="margin:10px 2px 0">
+      本页**只做公开的控制动作** —— 没有关机 / 重启 / 关 ADB / 关网关 这类按钮（页面在局域网内谁都能打开，
+      这类按钮不该出现在这里）。需要那类操作请走 adb 或既有脚本。
+    </p>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var DEF = "http://192.168.1.100:8899";
+  var HOST = localStorage.getItem("ledi_host") || "";
+  if (!HOST) HOST = (location.protocol === "http:" || location.protocol === "https:") ? location.origin : DEF;
+  var $ = function(id){ return document.getElementById(id); };
+
+  var elHost = $("host");
+  elHost.value = HOST.replace(/^https?:\/\//, "");
+
+  function toast(msg, err){
+    var t = $("toast");
+    t.textContent = msg;
+    t.className = "show" + (err ? " err" : "");
+    clearTimeout(t._tm);
+    t._tm = setTimeout(function(){ t.className = ""; }, 2600);
+  }
+  var logs = [];
+  function log(path, data){
+    var s = (typeof data === "string") ? data : JSON.stringify(data);
+    if (s && s.length > 300) s = s.slice(0, 300) + "…";
+    logs.unshift(new Date().toLocaleTimeString() + "  " + path + "  " + s);
+    if (logs.length > 60) logs.pop();
+    $("log").innerHTML = logs.map(function(x){
+      var cls = /"error"/.test(x) ? "e" : (/ok\":true|\"result\"/.test(x) ? "o" : "");
+      return '<div class="' + cls + '">' + esc(x) + "</div>";
+    }).join("");
+  }
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]; }); }
+
+  function api(path, body, method){
+    var m = method || (body === undefined ? "GET" : "POST");
+    var opt = { method:m, cache:"no-store" };
+    if (body !== undefined) { opt.headers = {"Content-Type":"application/json"}; opt.body = JSON.stringify(body); }
+    return fetch(HOST + path, opt).then(function(r){
+      return r.text().then(function(t){
+        var j = null; try { j = JSON.parse(t); } catch(e){}
+        log(path, j === null ? t : j);
+        return j === null ? {raw:t} : j;
+      });
+    }).catch(function(e){
+      log(path, "网络错误: " + e.message);
+      toast("连不上 " + HOST, true);
+      return null;
+    });
+  }
+
+  var pending = 0;
+  function act(path, body, okMsg){
+    pending++;
+    document.body.style.cursor = "progress";
+    return api(path, body).then(function(j){
+      pending--;
+      if (!pending) document.body.style.cursor = "";
+      if (j && j.error) toast("失败：" + j.error, true);
+      else if (okMsg) toast(okMsg);
+      return j;
+    });
+  }
+
+  /* ---------------- tabs ---------------- */
+  var chips = $("tabs").getElementsByClassName("chip");
+  function show(t){
+    for (var i=0;i<chips.length;i++) chips[i].className = "chip" + (chips[i].dataset.t===t ? " act" : "");
+    var secs = document.querySelectorAll("section.sec");
+    for (var j=0;j<secs.length;j++) secs[j].classList.add("hide");
+    $("s-" + t).classList.remove("hide");
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  $("tabs").addEventListener("click", function(e){
+    var c = e.target.closest ? e.target.closest(".chip") : null;
+    if (c) show(c.dataset.t);
+  });
+
+  /* ---------------- 地址 ---------------- */
+  $("setHost").onclick = function(){
+    var v = elHost.value.trim().replace(/\s+/g,"");
+    if (!v) return;
+    if (!/^https?:\/\//.test(v)) v = "http://" + v;
+    HOST = v; localStorage.setItem("ledi_host", HOST);
+    toast("已切到 " + HOST);
+    poll(true);
+  };
+  $("copyUrl").onclick = function(){
+    var u = HOST;
+    (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function(){
+      toast("已复制：" + u);
+    }).catch(function(){ toast("请手动复制：" + u); });
+  };
+
+  /* ---------------- 状态 ---------------- */
+  var facesList = [], motionsList = [], curSleeping = false;
+
+  function setTxt(id, v){ var e = $(id); if (e) e.textContent = v; }
+  function yn(b){ return b ? "开" : "关"; }
+
+  function paintSleep(s){
+    if (!s || !s.sleep) return;
+    var g = s.sleep;
+    curSleeping = !!g.sleeping;
+    setTxt("v_sleep", curSleeping ? "屏保中" : "醒着");
+    $("awake").classList.toggle("hide", !curSleeping);
+    $("rawSleep").textContent = JSON.stringify(s, null, 1);
+    if (g.gate) {
+      setTxt("v_wake", (g.gate.wake_suspended ? "已停" : "运行") + (g.gate.proactive_enabled ? " / 主动" : ""));
+    }
+  }
+
+  function paintLive(l){
+    if (!l || l.error) return;
+    $("rawLive").textContent = JSON.stringify(l, null, 1);
+    setTxt("v_cont", (typeof l.dialog_continuous !== "undefined") ? yn(l.dialog_continuous)
+        : (typeof l.continuous !== "undefined" ? yn(l.continuous) : "–"));
+    var on = (l.on !== false);
+    setTxt("v_live", on ? "开" : "关");
+    setTxt("v_beats", (typeof l.beats !== "undefined" ? l.beats : "–"));
+    $("livest").textContent = on ? "进行中" : "已关";
+    if (typeof l.idle_every !== "undefined") { $("ie").value = l.idle_every; $("iev").textContent = l.idle_every; }
+    if (typeof l.idle_motion_every !== "undefined") { $("ime").value = l.idle_motion_every; $("imev").textContent = l.idle_motion_every; }
+    if (typeof l.idle_deg !== "undefined") { $("ideg").value = l.idle_deg; $("idegv").textContent = l.idle_deg; }
+  }
+
+  function paintEmo(j){
+    if (!j || !j.emotion) return;
+    var e = j.emotion;
+    $("rawEmo").textContent = JSON.stringify(j, null, 1);
+    setTxt("v_emo", e.name || "–");
+    setTxt("emonow", e.name + "  (愉悦 " + e.valence + " / 唤醒 " + e.arousal + ")");
+    setTxt("emowhy", e.why ? "· " + e.why : "");
+    if (typeof e.valence === "number") { $("val").value = Math.round(e.valence*100); $("valv").textContent = e.valence.toFixed(2); }
+    if (typeof e.arousal === "number") { $("aro").value = Math.round(e.arousal*100); $("arov").textContent = e.arousal.toFixed(2); }
+  }
+
+  var lastOk = 0;
+  function paintHealth(h){
+    if (!h || h.error) return;
+    $("rawHealth").textContent = JSON.stringify(h, null, 1);
+    if (h.name) { $("rname").textContent = h.name + " · 控制台"; }
+    var ip = h.ip && h.ip !== "0.0.0.0" ? h.ip : "127.0.0.1";
+    var port = (HOST.match(/:(\d+)/) || [0,"8899"])[1];
+    $("lanurl").textContent = "http://" + ip + ":" + port + "/";
+  }
+
+  function tick(){
+    var chain = api("/health").then(function(h){
+      if (h) { lastOk = Date.now(); $("dot").className = "dot on"; paintHealth(h); }
+      else { $("dot").className = "dot off"; }
+    });
+    chain = chain.then(function(){ return api("/sleep"); }).then(paintSleep);
+    chain = chain.then(function(){ return api("/live"); }).then(paintLive);
+    chain = chain.then(function(){ return api("/emotion"); }).then(paintEmo);
+    chain = chain.then(function(){
+      $("rsub").textContent = HOST + (lastOk ? "  ·  " + new Date(lastOk).toLocaleTimeString() : "");
+      $("ago").textContent = lastOk ? "（" + Math.round((Date.now()-lastOk)/1000) + " 秒前刷新）" : "";
+    });
+  }
+
+  var polling = false;
+  function poll(immediate){
+    if (immediate) tick();
+    clearInterval(polling);
+    polling = setInterval(tick, 2500);
+  }
+
+  /* ---------------- 表情 ---------------- */
+  function renderFaces(){
+    var q = $("fq").value.trim().toLowerCase();
+    var list = facesList.filter(function(n){ return !q || n.indexOf(q) >= 0; });
+    $("fcount").textContent = list.length + " / " + facesList.length + " 张";
+    $("fgrid").innerHTML = list.map(function(n){
+      return '<button class="vbtn" data-f="' + esc(n) + '">' + esc(n) + "</button>";
+    }).join("");
+  }
+  $("fq").oninput = renderFaces;
+  $("fgrid").addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("button[data-f]") : null;
+    if (!b) return;
+    var n = b.dataset.f;
+    act("/face", {name:n, sound:false}, "表情：" + n);
+  });
+  $("frnd").onclick = function(){
+    if (!facesList.length) return;
+    act("/face", {name: facesList[Math.floor(Math.random()*facesList.length)], sound:false}, "随机表情");
+  };
+
+  /* ---------------- 动作 ---------------- */
+  function renderMotions(){
+    var q = $("mq").value.trim().toLowerCase();
+    var list = motionsList.filter(function(n){ return !q || n.toLowerCase().indexOf(q) >= 0; });
+    $("mcount").textContent = list.length + " / " + motionsList.length + " 个";
+    $("mgrid").innerHTML = list.map(function(n){
+      var dance = /^(dance_|special_)/.test(n);
+      return '<button class="vbtn' + (dance ? " sel" : "") + '" data-m="' + esc(n) + '">' + esc(n) + "</button>";
+    }).join("");
+  }
+  $("mq").oninput = renderMotions;
+  $("mgrid").addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("button[data-m]") : null;
+    if (!b) return;
+    var n = b.dataset.m;
+    act("/motion", {name:n}, "动作：" + n + "（已下发，不等机构到位）");
+  });
+  $("mrnd").onclick = function(){
+    if (!motionsList.length) return;
+    var n = motionsList[Math.floor(Math.random()*motionsList.length)];
+    act("/motion", {name:n}, "随机动作：" + n);
+  };
+
+  /* ---------------- 说话 ---------------- */
+  $("say").onclick = function(){
+    var t = $("txt").value.trim();
+    if (!t) { toast("先写点什么", true); return; }
+    act("/tts", {text:t}, "已送 TTS");
+  };
+  $("shut").onclick = function(){ act("/stop", {}, "已停"); };
+  $("ttsst").onclick = function(){ api("/ttsstatus"); };
+  $("vol").oninput = function(){ $("volv").textContent = this.value; };
+  $("volset").onclick = function(){ act("/volume", {n: parseInt($("vol").value,10)}, "音量 " + $("vol").value); };
+
+  /* ---------------- 灯光 ---------------- */
+  var lc = "all", la = "on";
+  $("lcolor").addEventListener("click", function(e){
+    if (!e.target.dataset.c) return;
+    lc = e.target.dataset.c; fire();
+  });
+  $("lact").addEventListener("click", function(e){
+    if (!e.target.dataset.a) return;
+    la = e.target.dataset.a; fire();
+  });
+  function fire(){ act("/light", {color:lc, action:la}, "灯光 " + lc + " / " + la); }
+
+  /* ---------------- 待机 ---------------- */
+  $("liveon").onclick = function(){ act("/live", {on:true}, "待机活泼 已开"); };
+  $("liveoff").onclick = function(){ act("/live", {on:false}, "待机活泼 已关"); };
+  ["ie","ime","ideg"].forEach(function(id){
+    $(id).oninput = function(){
+      $(id + "v").textContent = this.value;
+      if (id === "ie") $("livest").textContent = "未应用";
+    };
+  });
+  $("liveapply").onclick = function(){
+    act("/live", {on:true, idle_every:$("ie").value, idle_motion_every:$("ime").value, idle_deg:$("ideg").value}, "已应用");
+  };
+  $("wakeon").onclick = function(){ act("/wake", {on:true}, "唤醒引擎 开"); };
+  $("wakeoff").onclick = function(){ act("/wake", {on:false}, "唤醒引擎 关"); };
+  $("conton").onclick = function(){ act("/dialog", {continuous:true}, "常识别 开（唤醒引擎已让位）"); };
+  $("contoff").onclick = function(){ act("/dialog", {continuous:false}, "常识别 关"); };
+
+  /* ---------------- 情绪 ---------------- */
+  var EMO = ["happy","love","surprise","excite","praise","thank","smile","kawaii","expect","relax",
+             "think","serious","confused","unhappy","angry","dissatisfied","cry","fear","doze","wink"];
+  $("emogrid").innerHTML = EMO.map(function(n){
+    return '<button class="vbtn" data-e="' + n + '">' + n + "</button>";
+  }).join("");
+  $("emogrid").addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("button[data-e]") : null;
+    if (!b) return;
+    act("/emotion", {name: b.dataset.e}, "情绪：" + b.dataset.e);
+  });
+  $("val").oninput = function(){ $("valv").textContent = (this.value/100).toFixed(2); };
+  $("aro").oninput = function(){ $("arov").textContent = (this.value/100).toFixed(2); };
+  $("emoapply").onclick = function(){
+    act("/emotion", {valence: $("val").value/100, arousal: $("aro").value/100}, "已按滑条设定");
+  };
+  $("emoreset").onclick = function(){ act("/emotion", {reset:true}, "已回到平静"); };
+
+  /* ---------------- 深睡 / 叫醒 ---------------- */
+  $("awake").onclick = function(){ act("/sleep", {on:false}, "已叫醒"); };
+  $("stop").onclick = function(){ act("/stop", {}, "已停止动作"); };
+  $("dson").onclick = function(){
+    if (!confirm("深睡会冻结原厂主进程，头顶键将失效，只能用本页解冻。确定？")) return;
+    act("/deepsleep", {now:true}, "已进入深睡");
+  };
+  $("dsoff").onclick = function(){ act("/deepsleep", {now:false}, "已解冻"); };
+  $("caps").onclick = function(){ api("/sdk/caps"); };
+  $("stat2").onclick = function(){ api("/sdk/stat"); };
+  $("clrlog").onclick = function(){ logs = []; $("log").innerHTML = "–"; };
+
+  /* ---------------- 首屏 ---------------- */
+  api("/faces").then(function(j){
+    if (Array.isArray(j)) { facesList = j; renderFaces(); log("/faces", "共 " + j.length + " 张表情"); }
+  });
+  api("/motions_all").then(function(j){
+    if (Array.isArray(j)) { motionsList = j; }
+    else return api("/motions").then(function(k){ if (Array.isArray(k)) motionsList = k; });
+  }).then(function(){ motionsList = motionsList.slice().sort(); renderMotions(); });
+
+  poll(true);
+})();
+</script>
+</body>
+</html>

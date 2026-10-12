@@ -1,0 +1,23 @@
+# 构建产物
+dist/
+*.idsig
+
+# Python
+__pycache__/
+*.pyc
+
+# 临时/探测
+_probe/
+*.log
+*~
+
+# 系统
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# APK 本体不进 git：4 个 APK 统一放在 ledi-apk-archive 的 Release（见 README「校验值」节）
+*.apk
+
+# 签名密钥：不随仓分发（platform 私钥 = 这台 ROM 的安装闸门，见 编译说明.md「关于签名密钥」）
+07_源码/tools/keys/

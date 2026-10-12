@@ -1,0 +1,23 @@
+原厂 APK 溯源与用途说明
+========================================
+
+本目录保存的三份 APK 均为**原厂（厂商）发布的安装包**，
+随本开源仓一并保存，用途是：① 供他人复活同型机器人；② 协议/接口取证；③ 软件保全。
+
+这些包属于已停止运营厂商的遗弃软件（abandonware）。权利归原权利人，
+此处按「为互通与保全而保留」处理，详见仓库根目录 NOTICE.md。
+
+文件清单：
+  com.auric.intell.rbt.rbtclient.apk           18149220 B  md5=c3e1e4f1998016c1471af1edd9772975
+  com.auric.intell.rbt.xldtvrbtx-1.apk         74029122 B  md5=8e5179b3282386994c4922af4ae1c729
+  xldrbt_v1.5.10.apk                           95913128 B  md5=8cfff20c229ad34a96c9270e6a952190
+
+用途对照：
+  xldrbt_v1.5.10.apk                     主机器人 App（整机主要功能都在这里）；
+                                         也是 07_源码/_rebuild_agent.py 做
+                                         合并 dex / 取 .so 的来源包（可被 LEDI_OEM_APK 覆盖）。
+  com.auric.intell.rbt.rbtclient.apk     原厂配套客户端。
+  com.auric.intell.rbt.xldtvrbtx-1.apk   原厂另一款机器人 App。
+
+注意：xldrbt_v1.5.10.apk 用作构建输入时，只需它存在即可；
+      若你手上是别人给的「去引导版(-noguide)」等价包，设 LEDI_OEM_APK 指过去也行。

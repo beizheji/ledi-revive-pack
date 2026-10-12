@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.ledi.agent"
+    android:sharedUserId="android.uid.system"
+    android:versionCode="223"
+    android:versionName="1.0-v223-public">
+
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="25"/>
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.FORCE_STOP_PACKAGES"/>
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- 姿态注入：写原厂动作目录 /sdcard/xldBaseSDK/（config.a.b），主 App 引擎直接读取 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <!-- 需求⑦：把自己设成机器人桌面（HOME）。addPreferredActivity 需要它；
+         我们是 android.uid.system + platform 签名，签名级权限直接授予、不弹框。
+         另有 CHANGE_COMPONENT_ENABLED_STATE 用于兜底禁用其它 HOME 入口（系统级，无需声明） -->
+    <uses-permission android:name="android.permission.SET_PREFERRED_APPLICATIONS"/>
+    <!-- 头顶键要用"主程序现在在前台吗"来决定是打开还是退出。
+         ★ Android 5.0 起 GET_TASKS 只能看到自己的 task（别人的要 signature 级的
+           REAL_GET_TASKS），所以 HeadKey 里做成"查得到就用查询、查不到退回自记状态"，
+         并把用的是哪个报进 /headkey 的 in_front_by，免得把"查不到"当成"不在前台"。 -->
+    <uses-permission android:name="android.permission.GET_TASKS"/>
+
+    <!-- android:icon 走 @mipmap/ic_launcher：素材是 make_ledi_icons.py 产出的
+         红色乐迪（原厂 icon3.webp），与电脑端 乐迪控制器.ico / 手机端同源，
+         由 build_apk.py 的 res 参数编译进来。
+         ★ 别再改回 make_icon.py —— 那个画的是**蓝色齿轮**，那是机器人屏幕
+           左上角「设置」按钮的图形，不是 App 图标；v55 及以前就是被它顶掉的。
+         在此之前本包是 manifest-only、连 res/ 都没有，装上去是系统默认小绿人。
+         注意：XML 注释里不能出现双连字符，参数名不要写成带前缀的形式。 -->
+    <application android:label="LediAgent" android:icon="@mipmap/ic_launcher"
+                 android:allowBackup="false">
+        <!-- 百度语音 SDK 授权（语音唤醒用，与原厂 xldrbtx 相同的 appid/key） -->
+        <meta-data android:name="com.baidu.speech.APP_ID" android:value="9528412"/>
+        <meta-data android:name="com.baidu.speech.API_KEY" android:value="qDdzilLFIxhsNGxLNB3MjdKc"/>
+        <meta-data android:name="com.baidu.speech.SECRET_KEY" android:value="8282886fde0493b182c79f1ead5b0fc7"/>
+        <!-- 遥控代理主服务：HTTP 控制 + BLE 配网 + UDP 广播 -->
+        <service android:name="com.ledi.agent.core.AgentService" android:exported="true"/>
+        <!-- 复用原厂动作引擎（classes2+ dex 内含原包代码，串口 /dev/ttyMT0） -->
+        <service android:name="com.auric.intell.rbt.xldbasesdk.service.engine.EngineService"
+                 android:exported="false"/>
+        <!-- 机器人控制界面（屏幕左上角白色齿轮点开） -->
+        <activity android:name="com.ledi.agent.ui.SettingsActivity"
+                  android:exported="true"
+                  android:launchMode="singleTask"
+                  android:theme="@android:style/Theme.Material.NoActionBar"/>
+        <!-- newcore：图形化动作编程器（WebView 加载统一内核 programmer.html） -->
+        <activity android:name="com.ledi.agent.ui.ProgrammerActivity"
+                  android:exported="true"
+                  android:launchMode="singleTask"
+                  android:theme="@android:style/Theme.Material.NoActionBar"/>
+        <!-- newcore：AI 主界面。
+             ★★ v134 起 HOME 入口**不在**这个 activity 上，而在下面那个 activity-alias
+             上，原因（2026-09-23 实测血的教训）：
+               唯一化"全机 HOME 候选"必须禁掉我们自己的那条入口，而
+               `setComponentEnabledSetting(BrainActivity, DISABLED, DONT_KILL_APP)`
+               禁掉的是**整个 Activity 组件**，不只是 HOME 那个 intent-filter ⇒
+               `am start -n com.ledi.agent/.BrainActivity` 与 `POST /headkey {"main":"brain"}`
+               会**直接失败**（防砖兜底入口被自己废掉了）。而命令行 `pm disable` 连
+               DONT_KILL_APP 都没有 ⇒ 它还顺手把整个进程打死（实测死了 13 分钟没人救）。
+               把 HOME 过滤器挪到别名上之后：禁用的是**别名**，界面本体始终可用。
+
+             想手动打开本界面：adb shell am start -n com.ledi.agent/.BrainActivity -->
+        <activity android:name="com.ledi.agent.ui.BrainActivity"
+                  android:exported="true"
+                  android:launchMode="singleTask"
+                  android:theme="@android:style/Theme.Material.NoActionBar"/>
+        <!-- 我们这条 HOME 入口的**别名**。必须声明在 targetActivity 之后（aapt 的硬要求）。
+             平时它是 disabled（= 全机 HOME 候选唯一 = 解析不可能弹出选择器，见 HomeSetter）；
+             只有"原厂桌面不在了、我们要自己兜底当桌面"时才被开回来。
+             ★ 它不带 launchMode/theme：这些由 targetActivity 继承，别名上写了也没用。 -->
+        <activity-alias android:name="com.ledi.agent.BrainHome"
+                        android:targetActivity="com.ledi.agent.ui.BrainActivity"
+                        android:exported="true"
+                        android:label="LediAgent">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.HOME"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity-alias>
+        <!-- 自启动 / 复活：真机上只挂 BOOT_COMPLETED 不保证能起来（见 BootReceiver 注释）。
+             凡是「开机 / 覆盖安装 / 联网 / 用户回来 / **碰机器人**」必然会来的广播全挂上，
+             谁能来就靠谁把服务拉起来。重复触发只是多调一次 startService
+             （服务已在跑时 BootReceiver 会直接 return，连调都不调），无副作用。
+
+             ★★ 下面那组 com.auric.intell.xld.rbt.* 是原厂/框架发的**按键与触摸**广播：
+             发送者是 system_server 自己、隐式广播 ⇒ 进程死着也会被系统拉起来送达。
+             这是"用户一碰就自愈"的通道，也是 13 分钟那次"没人救"的正解。 -->
+        <receiver android:name="com.ledi.agent.core.BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.mediatek.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.USER_PRESENT"/>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
+                <action android:name="android.net.wifi.STATE_CHANGE"/>
+                <action android:name="android.intent.action.SCREEN_ON"/>
+                <action android:name="android.intent.action.SCREEN_OFF"/>
+                <action android:name="com.auric.intell.xld.rbt.key.head.down"/>
+                <action android:name="com.auric.intell.xld.rbt.key.head.up"/>
+                <action android:name="com.auric.intell.xld.rbt.key.power.down"/>
+                <action android:name="com.auric.intell.xld.rbt.key.power.up"/>
+                <action android:name="com.auric.intell.xld.rbt.face.head.down"/>
+                <action android:name="com.auric.intell.xld.rbt.face.head.up"/>
+                <action android:name="com.auric.intell.xld.rbt.face.l.down"/>
+                <action android:name="com.auric.intell.xld.rbt.face.l.up"/>
+                <action android:name="com.auric.intell.xld.rbt.face.r.down"/>
+                <action android:name="com.auric.intell.xld.rbt.face.r.up"/>
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

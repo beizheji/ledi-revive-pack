@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>乐迪机器人复活计划 · 预览</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --ink:#1b1f27; --sub:#5a6472; --line:#e3e7ee;
+    --brand:#c8352f; --brand2:#1f6feb; --ok:#1a7f4b; --warn:#b06a00;
+    --code:#f0f2f6; --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#12151b; --panel:#191e26; --ink:#e8ecf3; --sub:#9aa6b6; --line:#2a323d;
+           --code:#11151c; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35); }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 20px 72px}
+  header.hero{background:linear-gradient(135deg,#c8352f 0%,#8f1f1a 60%,#3a1210 100%);
+              border-radius:16px;padding:30px 30px 26px;color:#fff;box-shadow:var(--shadow)}
+  header.hero .tag{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+                   background:rgba(255,255,255,.16);padding:4px 10px;border-radius:999px}
+  header.hero h1{margin:12px 0 6px;font-size:27px;line-height:1.25}
+  header.hero p{margin:0;color:#ffe8e6;font-size:14.5px;max-width:70ch}
+  h2{font-size:19px;margin:36px 0 12px;padding-left:11px;border-left:4px solid var(--brand);line-height:1.3}
+  h3{font-size:15.5px;margin:22px 0 8px;color:var(--ink)}
+  p{margin:9px 0}
+  .sub{color:var(--sub);font-size:13.5px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 17px;box-shadow:var(--shadow)}
+  .card h4{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .pill{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--code);color:var(--sub);border:1px solid var(--line)}
+  .pill.red{background:rgba(200,53,47,.1);color:var(--brand);border-color:rgba(200,53,47,.25)}
+  .pill.blue{background:rgba(31,111,235,.1);color:var(--brand2);border-color:rgba(31,111,235,.25)}
+  .pill.green{background:rgba(26,127,75,.1);color:var(--ok);border-color:rgba(26,127,75,.25)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--sub);font-weight:600;font-size:12.5px;background:transparent}
+  code,kbd{background:var(--code);padding:1.5px 5px;border-radius:5px;font-size:12.5px;
+           font-family:ui-monospace,Consolas,"Cascadia Mono",monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow:auto;font-size:12.5px}
+  pre code{background:none;padding:0}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;text-align:center;box-shadow:var(--shadow)}
+  .kpi b{display:block;font-size:22px;line-height:1.2}
+  .kpi span{font-size:12px;color:var(--sub)}
+  .note{border-left:4px solid var(--warn);background:rgba(176,106,0,.07);padding:10px 14px;border-radius:0 10px 10px 0;margin:12px 0;font-size:13.5px}
+  .ok{border-left-color:var(--ok);background:rgba(26,127,75,.07)}
+  .bad{border-left-color:var(--brand);background:rgba(200,53,47,.07)}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-all}
+  footer{margin-top:44px;color:var(--sub);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+  .flow{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:6px 10px;box-shadow:var(--shadow);overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Preview · 预览版</span>
+  <h1>乐迪智能机器人 · 复活计划</h1>
+  <p>厂商已停运两年余，整机变砖。我们用两个 App 把它救回来：一个<b>魔改过的原厂包</b>负责硬件与唤醒，
+     一个<b>AI 控制包</b>负责大脑与接口。下面就是<b>机器人上现在实际跑着的这两个包</b>。</p>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><b>2</b><span>真机上装的改造 App</span></div>
+  <div class="kpi"><b>831</b><span>魔改包逐字节未动的条目</span></div>
+  <div class="kpi"><b>11</b><span>魔改包实际改动的条目</span></div>
+  <div class="kpi"><b>199</b><span>AI 控制包对外 HTTP 端点</span></div>
+</div>
+
+<h2>一、机器人上现在跑着什么</h2>
+
+<table>
+  <thead><tr><th>角色</th><th>包名</th><th>版本</th><th>大小</th><th>md5（真机实取）</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill red">魔改过的原厂包</span></td>
+      <td><code>com.auric.intell.rbt.xldrbtx</code></td>
+      <td>1.5.10 (vc 160)</td>
+      <td>95,957,826 B</td>
+      <td class="mono">3f83bc651f2e7ef255f25387961feb69</td>
+    </tr>
+    <tr>
+      <td><span class="pill blue">AI 控制包</span></td>
+      <td><code>com.ledi.agent</code></td>
+      <td>1.0-v222 (vc 222)</td>
+      <td>17,756,662 B</td>
+      <td class="mono">dcbc3a041d4f4f2e30344c1759711445</td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="sub">上表两个 md5 是<b>从机器人上把 APK 拉回来现算的</b>，并已与本地改造产物逐一对上：
+魔改原厂包 == <code>dist/xldrbt_v1.5.10-noguide.apk</code>；AI 控制包 == <code>dist/LediAgent.v222.apk</code>。
+开源仓里另附脱敏重编的 <code>LediAgent.public-v223.apk</code>（<code>a775f93b…</code>），与真机 v222 仅差一处被清掉的私网 IP。</p>
+
+<h2>二、魔改过的原厂包：到底改了什么</h2>
+
+<p>拿<b>原厂原样包</b>（<code>xldrbt_v1.5.10.apk</code>，<code>8cfff20c…</code>，95,913,128 B）与<b>真机在跑的魔改版</b>做
+<b>逐条目对差</b>——这是判据，不是自述：</p>
+
+<div class="note ok">
+  <b>844 个条目，仅 11 处不同，831 处逐字节相同。</b>
+  也就是说：改动是<b>外科手术式</b>的，整个包 99% 仍是原厂原样。
+</div>
+
+<table>
+  <thead><tr><th>#</th><th>条目</th><th>变化</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><code>classes.dex</code></td><td>字节数<b>完全相同</b>（7,963,084），内容不同</td>
+        <td><b>等长字节码补丁</b>：只改指令/常量，不动 DEX 结构 —— 去掉开机登录引导、把对话端点指向本机</td></tr>
+    <tr><td>2–5</td><td><code>com/allresources/*_filter.properties</code> ×4</td><td>大幅缩小（如 child 57,607→123）</td>
+        <td>原厂内容过滤词表被<b>置空（脱厂处理）</b>，不再走原厂内容服务</td></tr>
+    <tr><td>6–10</td><td><code>res/mipmap-*/ic_launcher.png</code> ×5</td><td>尺寸变大</td>
+        <td>换成自己的<b>图标</b></td></tr>
+    <tr><td>11</td><td><code>META-INF/MANIFEST.MF</code> + 签名块</td><td>CERT → <b>PLATFORM</b></td>
+        <td>用 <b>platform 密钥重签</b>（这颗 ROM 只收平台签名）</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>没动的地方（同样重要）</b>：<code>AndroidManifest.xml</code> 逐字节相同、
+  <code>resources.arsc</code> 相同、<b>全部 <code>lib/*.so</code> 相同</b>（含串口 <code>libserial_port.so</code>、百度唤醒/识别、
+  灵云 TTS）、全部 <code>assets/</code>（唤醒词、动作表、表情表）相同、<code>classes2.dex</code> 相同。
+  <br><br>补丁集为改造工程内完成的等长字节码补丁：脱厂（去引导 / 域名重定向 / 端点改指本机）、
+  去掉"断网联网/扫码绑定"引导界面与文案（5 处等长补丁）、换图标。
+  多份产物中，真机装的是 <code>-noguide</code>（= 本机版 + 去引导二合一）。
+</div>
+
+<h2>三、AI 控制包：它是什么、能干什么</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>一个 App 干两件事 <span class="pill blue">com.ledi.agent</span></h4>
+    <p class="sub">既是<b>语音/动作/表情</b的驱动，也是<b>整机唯一的控制通道</b>：
+       它在自己身上起一个 HTTP 服务（端口 <b>8899</b>），同网任何手机/电脑开浏览器就能控制，
+       <b>客户端零安装</b>。</p>
+    <p class="sub">它不自带任何 API Key —— 大模型地址与 Key 由使用者<b>运行时填</b>（兼容 OpenAI 协议）。</p>
+  </div>
+  <div class="card">
+    <h4>能力边界是"可查询"的 <span class="pill green">GET /abilities</span></h4>
+    <p class="sub">三态权限矩阵：<code>read</code> 只读查询 / <code>write</code> 有限更改 /
+       <code>plan</code> 编排 / <code>forbid</code> 安全红线（重启、关机、关 adb、改 WiFi 等一律只读不可改）。
+       AI 只能在这个边界内动手。</p>
+  </div>
+  <div class="card">
+    <h4>它怎么连硬件 <span class="pill">反射复用原厂引擎</span></h4>
+    <p class="sub">不重造轮子：通过<b>合并原厂 dex + 复用原厂 .so</b>，直接驱动原厂的串口/舵机、唤醒引擎、
+       表情与动作表；因此 95 MB 的原厂包仍是它的"底座"。</p>
+  </div>
+  <div class="card">
+    <h4>对外接口 <span class="pill">199 个端点 / 9 个域</span></h4>
+    <p class="sub">cap · voice · motion · sense · media · ui · sdk · sys · probe。
+       全部清单见开源仓 <code>06_文档/api/endpoints.json</code>。</p>
+  </div>
+</div>
+
+<h3>两个包如何配合</h3>
+<div class="flow">
+<svg viewBox="0 0 680 250" role="img" aria-label="两个 App 与硬件的配合关系">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#8a94a6"/>
+    </marker>
+  </defs>
+  <rect x="10" y="14" width="660" height="222" rx="12" fill="none" stroke="#e3e7ee" stroke-dasharray="4 5"/>
+  <text x="26" y="36" font-size="12" fill="#5a6472">机器人（MT6580 / Android 5.1）</text>
+
+  <!-- AI 控制包 -->
+  <rect x="34" y="52" width="196" height="86" rx="11" fill="#e8f0fe" stroke="#1f6feb"/>
+  <text x="50" y="76" font-size="13.5" font-weight="700" fill="#1b3b6f">AI 控制包</text>
+  <text x="50" y="95" font-size="10.5" fill="#33507d">com.ledi.agent</text>
+  <text x="50" y="113" font-size="10.5" fill="#33507d">AI 大脑 · 语音 · 情绪 · 多轮</text>
+  <text x="50" y="129" font-size="10.5" fill="#33507d">HTTP :8899 网页控制台</text>
+
+  <!-- 魔改原厂包 -->
+  <rect x="248" y="52" width="196" height="86" rx="11" fill="#fdeceb" stroke="#c8352f"/>
+  <text x="264" y="76" font-size="13.5" font-weight="700" fill="#7d1c18">魔改过的原厂包</text>
+  <text x="264" y="95" font-size="10.5" fill="#8a2b26">com.auric.intell.rbt.xldrbtx</text>
+  <text x="264" y="113" font-size="10.5" fill="#8a2b26">原厂引擎 · 串口/舵机 · 唤醒</text>
+  <text x="264" y="129" font-size="10.5" fill="#8a2b26">动作表 · 表情表（原厂 assets）</text>
+
+  <!-- 硬件 -->
+  <rect x="462" y="52" width="182" height="86" rx="11" fill="#eef7f1" stroke="#1a7f4b"/>
+  <text x="478" y="76" font-size="13.5" font-weight="700" fill="#155e39">硬件</text>
+  <text x="478" y="95" font-size="10.5" fill="#20603f">舵机 · 麦克风 · 喇叭</text>
+  <text x="478" y="113" font-size="10.5" fill="#20603f">头顶键 · 灯 · 传感器</text>
+  <text x="478" y="129" font-size="10.5" fill="#20603f">串口（FF FF F0 …）</text>
+
+  <line x1="230" y1="95" x2="246" y2="95" stroke="#8a94a6" stroke-width="1.4" marker-end="url(#ar)"/>
+  <line x1="444" y1="95" x2="460" y2="95" stroke="#8a94a6" stroke-width="1.4" marker-end="url(#ar)"/>
+
+  <!-- 控制台 -->
+  <rect x="34" y="164" width="196" height="52" rx="11" fill="#f3f4f7" stroke="#c9d0da"/>
+  <text x="50" y="186" font-size="12" font-weight="600" fill="#3b4553">你的手机 / 电脑</text>
+  <text x="50" y="203" font-size="10.5" fill="#5a6472">浏览器开 http://&lt;机器人IP&gt;:8899/</text>
+  <line x1="132" y1="164" x2="132" y2="140" stroke="#8a94a6" stroke-width="1.4" marker-end="url(#ar)"/>
+
+  <text x="248" y="192" font-size="10.5" fill="#5a6472">原厂包负责"身体"，控制包负责"大脑"；</text>
+  <text x="248" y="208" font-size="10.5" fill="#5a6472">两者靠原厂引擎 + 串口协作，不依赖原厂服务器。</text>
+</svg>
+</div>
+
+<h3>快速自检（连上机器人后）</h3>
+<pre><code># 1) 连上（刷过复活 BOOT 后 adb 立即可用）
+adb connect &lt;机器人IP&gt;:5555
+
+# 2) 看它现在能干什么（只读，屏保期也能查）
+curl http://&lt;机器人IP&gt;:8899/abilities
+
+# 3) 退出屏保（屏保中动作/说话类接口会回 sleeping）
+curl -X POST http://&lt;机器人IP&gt;:8899/sleep -d '{"on":false}'
+
+# 4) 说一句
+curl -X POST http://&lt;机器人IP&gt;:8899/say -d '{"text":"你好，我复活了"}'</code></pre>
+
+<h2>四、怎么把这两个包装上去</h2>
+<pre><code># 魔改过的原厂包（改造产物，来自改造工程 dist/）
+adb install -r xldrbt_v1.5.10-noguide.apk
+
+# AI 控制包（开源仓内已附脱敏重编的公开版）
+adb install -r 03_App/LediAgent.public-v223.apk</code></pre>
+<p class="sub">两者都需 platform 签名才能装进这颗"只收平台签名"的 ROM。完整步骤见 <code>复活指南.md</code>。</p>
+
+<h2>五、说明：哪些地方还"糙"</h2>
+
+<div class="note bad">
+  <b>如实标注（当前版本的不足）：</b>
+  <ul>
+    <li><b>魔改包只有二进制、没有源码级补丁集随仓</b>：补丁是"等长字节码改写"，脚本散在改造工程里，
+        尚未整理成一份可独立重放的补丁说明。</li>
+    <li><b>两个包的安装顺序与依赖</b>（谁先谁后、覆盖安装会不会丢数据）未在本轮真机复验。</li>
+    <li><b>AI 控制包真机是 v222、仓内是 v223-public</b>：二者只差一处被清掉的私网 IP，
+        但<b>没有真机装过 v223-public</b>，属未验证。</li>
+    <li><b>魔改包里的原厂内容过滤词表被置空</b>，其行为影响未做全面回归。</li>
+    <li>本预览页为<b>说明性文档</b>，不是可执行产物；不包含任何密钥与个人数据。</li>
+  </ul>
+</div>
+
+<h2>六、目录一览（开源仓）</h2>
+<table>
+  <thead><tr><th>目录</th><th>内容</th></tr></thead>
+  <tbody>
+    <tr><td><code>01_刷机包/</code></td><td>复活用的 BOOT（自带 root adb + FTP，是复活入口）</td></tr>
+    <tr><td><code>02_素材/</code></td><td>原厂开机动画、屏保图</td></tr>
+    <tr><td><code>03_App/</code></td><td>AI 控制包（脱敏重编公开版）</td></tr>
+    <tr><td><code>04_脚本/</code></td><td>一键落地脚本</td></tr>
+    <tr><td><code>05_原厂APK/</code></td><td>原厂原样安装包（打补丁的干净基底）</td></tr>
+    <tr><td><code>06_文档/</code></td><td>199 个端点总表与分领域说明</td></tr>
+    <tr><td><code>07_源码/</code></td><td>AI 控制包完整源码 + 可移植构建脚本</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  乐迪机器人复活计划 · 预览版 · 2026-10-12<br>
+  自研部分 MIT（见 <code>LICENSE</code>）；第三方与原厂二进制按 <code>NOTICE.md</code> 声明保留。
+  仅供自有设备与家庭内网使用。
+</footer>
+
+</div>
+</body>
+</html>

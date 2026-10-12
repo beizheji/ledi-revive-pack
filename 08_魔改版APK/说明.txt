@@ -1,0 +1,34 @@
+魔改过的原厂包 · 说明
+========================================
+
+这是什么
+  在原厂主 App 上打过补丁的版本。当前机器人上运行的就是这一份 —— 也就是说：
+  要复活一台同型机器人，这个包（而不是 05_原厂APK 里的原样包）才是要装的底座。
+
+文件
+  xldrbt_v1.5.10-noguide.apk
+    包名      com.auric.intell.rbt.xldrbtx
+    版本      1.5.10 (versionCode 160)
+    大小      95957826 字节
+    md5       3f83bc651f2e7ef255f25387961feb69
+
+  = 改造工程 dist/xldrbt_v1.5.10-noguide.apk = 真机实取那份（三方 md5 一致）。
+
+改了什么（与原厂原样包逐条目对差：844 条目，仅 11 处不同，831 处逐字节相同）
+  1) classes.dex   字节数完全相同、内容不同 —— 等长字节码补丁：
+                   去开机登录/激活引导、把对话端点指向本机（不再连已停运的原厂服务器）
+  2) com/allresources/*_filter.properties ×4  —— 原厂内容过滤词表被置空
+  3) res/mipmap-*/ic_launcher.png ×5          —— 换成自己的图标
+  4) META-INF/*                               —— 用 platform 密钥重签
+  未改动：AndroidManifest.xml、resources.arsc、全部 lib/*.so、全部 assets/、classes2.dex
+          （逐字节相同）
+
+  补丁由改造工程内的等长字节码补丁脚本完成（本仓只收补丁结果，见上面对差清单）。
+
+怎么装
+  adb install -r xldrbt_v1.5.10-noguide.apk
+  注意：这颗 ROM 只收平台签名，本包已 platform 签名，可直接覆盖安装。
+
+声明
+  本包内含原厂代码与 SDK，权利归原权利人；按仓库根目录 NOTICE.md 作为遗弃软件保留，
+  仅用于自有设备复活与互通。原厂原样包在 05_原厂APK/。

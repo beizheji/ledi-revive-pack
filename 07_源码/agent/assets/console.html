@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/favicon.ico">
+<title>乐迪控制器</title>
+<style>
+:root{--bg:#16224a;--pan:#24376b;--pan2:#2c4180;--line:#3d569b;--tx:#eef3ff;
+--dim:#a8bde8;--ac:#f8e055;--ok:#8ecf2a;--warn:#ffb454;--err:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;color:var(--tx);background:
+radial-gradient(circle at 88% 6%,rgba(248,224,85,.10),transparent 42%),
+radial-gradient(circle at 6% 92%,rgba(88,140,220,.18),transparent 46%),
+var(--bg);
+font:14px/1.5 "Microsoft YaHei",system-ui,sans-serif}
+header{position:sticky;top:0;z-index:9;background:linear-gradient(180deg,#2c4180,#24376b);
+border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px;
+align-items:center;flex-wrap:wrap}
+header h1{font-size:16px;margin:0}
+header .st{font-size:12px;color:var(--dim)}
+.ava{width:34px;height:34px;border-radius:10px;background:#fff;padding:2px;
+box-shadow:0 1px 6px rgba(0,0,0,.35)}
+main{max-width:1080px;margin:0 auto;padding:14px 16px 60px}
+section{background:linear-gradient(180deg,var(--pan2),var(--pan));
+border:1px solid var(--line);border-radius:14px;
+padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.22)}
+section h2{font-size:14px;margin:0 0 8px;color:var(--ac)}
+.g{display:flex;flex-wrap:wrap;gap:6px}
+button{background:#31488c;color:var(--tx);border:1px solid var(--line);
+border-radius:9px;padding:6px 11px;cursor:pointer;font-size:13px}
+button:hover{border-color:var(--ac);color:var(--ac)}
+button.on{border-color:var(--ok);color:var(--ok)}
+input,select,textarea{background:#1a2b55;color:var(--tx);
+border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:13px}
+input:focus,textarea:focus{outline:none;border-color:var(--ac)}
+textarea{width:100%;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;align-items:center}
+.row label{color:var(--dim);font-size:12px;min-width:64px}
+.log{background:#131e40;border:1px solid var(--line);border-radius:10px;
+padding:8px 10px;font:12px/1.6 Consolas,monospace;max-height:170px;
+overflow:auto;white-space:pre-wrap;color:#bfe3a8}
+.vol{width:180px}
+.gear{display:inline-block;width:20px;height:20px;vertical-align:-4px}
+</style></head><body>
+<header>
+ <img class="ava" src="/ui/icons/ledi.png" alt="乐迪" title="乐迪"
+      onerror="this.style.display='none'">
+ <h1>乐迪控制器</h1>
+ <span class="st" id="st">加载中…</span>
+ <span class="st" id="appinfo" style="margin-left:auto"></span>
+</header>
+<main>
+
+<section data-pconly="1" style="display:none"><h2>⓪ 一键开关</h2>
+ <div class="row">
+  <button id="swAi" onclick="sw('ai')">AI 接管：…</button>
+  <button id="swNative" onclick="sw('native')">机器人自带反应：…</button>
+  <button id="swAuto" onclick="sw('auto_react')">AI 自动反应：…</button>
+  <button onclick="reactNow()">让 AI 反应一下</button>
+ </div>
+ <div style="color:var(--dim);font-size:12px">
+  「AI 接管」关掉 = 完全退回原厂（对话原样透传，AI 不改写）·
+  「自带反应」= 机器人被摸头/摸脸/被拿起/被摇晃/摔倒/低电时的本地即时反应（表情+动作，不依赖网络）·
+  「AI 自动反应」= AI 在检测到抱起/摇晃/摔倒/低电时主动说一句
+ </div>
+</section>
+
+<section data-pconly="1" style="display:none"><h2>① AI 连接（大模型 / 机器人）</h2>
+ <div class="row"><label>谁在思考</label>
+  <button id="bmApi" onclick="setBrain('api')">API（填 Key）</button>
+  <button id="bmWeb" onclick="setBrain('web')">网页版 DeepSeek</button>
+  <span id="brainState" style="color:var(--dim);font-size:12px"></span></div>
+ <div class="row"><label>LLM 地址</label><input id="llmBase" style="flex:1;min-width:260px" placeholder="https://api.deepseek.com/v1"></div>
+ <div class="row"><label>API Key</label><input id="llmKey" type="password" style="flex:1;min-width:260px" placeholder="sk-…"></div>
+ <div class="row"><label>模型</label><input id="llmModel" style="flex:1;min-width:200px" placeholder="deepseek-chat">
+ <label>机器人</label><input id="agentAddr" placeholder="192.168.1.50:8899" style="width:170px">
+ <button onclick="saveCfg()">保存配置</button>
+ <button onclick="testAll()">测试连接</button></div>
+ <div class="row"><label>自动发现</label>
+  <button id="dfToggle" onclick="dfToggle()">开</button>
+  <button onclick="dfAct('find')">立即找一次</button>
+  <button onclick="dfAct('announce')">告诉机器人我在哪</button>
+  <button onclick="dfAct('announce-check')" title="广播没有回执，只能去问机器人收没收到">机器人收到了吗</button>
+  <span id="dfState" style="color:var(--dim);font-size:12px"></span></div>
+ <div class="row"><label>蓝牙隧道</label>
+  <button id="btToggle" onclick="btToggle()">开</button>
+  <button onclick="dfAct('bt-probe')">试一下</button>
+  <button onclick="dfAct('bt-scan')">重扫通道</button>
+  <button onclick="dfAct('pan')">没有 WiFi 时兜底</button>
+  <span id="btState" style="color:var(--dim);font-size:12px"></span></div>
+ <div class="row"><label>随机心跳</label>
+  <button id="hbToggle" onclick="hbToggle()">开</button>
+  <label style="color:var(--dim)">间隔</label>
+  <input id="hbMin" type="number" value="60" style="width:64px" title="最短秒数">~
+  <input id="hbMax" type="number" value="180" style="width:64px" title="最长秒数">秒
+  <button onclick="hbSet()">应用</button>
+  <button onclick="hbNow()">立刻来一次</button>
+  <span id="hbState" style="color:var(--dim);font-size:12px"></span></div>
+ <div class="log" id="dfLog">—</div>
+ <div class="row" style="border-top:1px dashed var(--line);padding-top:8px">
+  <b style="color:var(--fg);font-weight:500">网页版 DeepSeek（不用 API Key）</b>
+  <button onclick="wbAct('open')">打开网页 / 登录</button>
+  <button onclick="wbAct('test')">让它回一句（自检）</button>
+  <button onclick="wbAct('newchat')">开新对话</button>
+  <button onclick="wbAct('close')">关掉浏览器</button></div>
+ <div class="log" id="wbLog">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  选「网页版 DeepSeek」时，电脑端会用它自带的浏览器打开 chat.deepseek.com，
+  把人设提示词和机器人**全部接口说明**一起发过去，再把回复取回来照常解析下发。
+  首次需要在弹出的窗口里登录一次（手机号/微信/Apple 都行），登录态由独立的浏览器
+  profile 记住，之后长期免登。网页比 API 慢一点，但不用 Key、不花额度。
+ </div>
+ <div class="log" id="cfgLog">—</div>
+</section>
+
+<section><h2>② 让机器人说话（机器人自带语音）</h2>
+ <textarea id="sayText" rows="2" placeholder="要转述给机器人说的话…"></textarea>
+ <div class="row">
+  <button onclick="say()">▶ 让机器人念</button>
+  <button onclick="ttsStatus()">检测语音引擎</button>
+  <button onclick="agent('/ttsstop',{})">■ 停止说话</button>
+ </div>
+ <div class="log" id="sayLog">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  语音走机器人自带的讯飞合成（与原厂同一套引擎、同一个嗓子），
+  电脑端不再重复做一份 mp3 合成；机器人侧合成不可用时由它自己回落。
+ </div>
+</section>
+
+<section><h2>③ 动作（普通动作 / 舞蹈）</h2>
+ <div class="row"><b style="color:var(--fg)">普通动作</b><span id="mNormalCnt" style="color:var(--dim)"></span></div>
+ <div class="g" id="motionsNormal"></div>
+ <div class="row" style="margin-top:8px"><b style="color:var(--fg)">舞蹈</b><span id="mDanceCnt" style="color:var(--dim)"></span></div>
+ <div class="g" id="motionsDance"></div>
+ <div class="row" style="margin-top:8px">
+  <button onclick="agent('/dance',{name:''})">🎲 随机跳舞</button>
+  <button onclick="agent('/stop',{})">■ 停止动作</button>
+  <button onclick="agent('/motionconfig',{reset:true})">启用全部动作</button>
+ </div>
+ <div class="log" id="motionLog">—</div>
+</section>
+
+<section><h2>④ 表情</h2>
+ <div class="row"><input id="faceQ" placeholder="搜索表情名…" style="width:150px"
+   oninput="renderFaces()">
+  <label style="color:var(--dim)">数量</label><span id="faceCnt" style="color:var(--dim)"></span>
+  <label><input type="checkbox" id="faceSound" style="vertical-align:-2px"> 同时放原厂音效</label>
+  <button onclick="agent('/faceoff',{})">关闭表情</button></div>
+ <div class="g" id="faces"></div>
+</section>
+
+<section><h2>⑤ 马达角度（关节自由摆）</h2>
+ <div class="g" id="presets"></div>
+ <div class="row"><label>时长ms</label><input id="pMs" type="number" value="800" style="width:80px">
+ <label>左臂</label><input id="pJ1" type="number" value="0" style="width:70px" title="-90..150">
+ <label>身体</label><input id="pJ2" type="number" value="0" style="width:70px" title="-100..100">
+ <label>右臂</label><input id="pJ3" type="number" value="0" style="width:70px" title="-90..150">
+ <button onclick="doPose()">立即做</button></div>
+ <div style="color:var(--dim);font-size:12px">
+  左臂/右臂 −90..150（0=自然下垂 45=半抬 90=平举 150=高举 负=后摆）；
+  身体 −100..100（正=向左转 负=向右转）。AI 说话时也走同一套角度，见提示词里的对照表。
+ </div>
+</section>
+
+<section><h2>⑥ 灯光（胸口 LED）</h2>
+ <div class="g" id="leds"></div>
+ <div class="row" style="margin-top:8px">
+  <button onclick="led('all','on')">全部点亮</button>
+  <button onclick="led('all','off')">全部熄灭</button>
+  <button onclick="led('all','blink.fast')">全部快闪</button>
+  <button onclick="led('all','blink.slow')">全部慢闪</button>
+ </div>
+ <div class="log" id="ledLog">—</div>
+</section>
+
+<section><h2>⑦ 屏幕显示内容</h2>
+ <div class="row"><input id="scrText" style="flex:1;min-width:240px" placeholder="要显示在机器人屏幕上的文字">
+ <button onclick="agent('/display',{text:document.getElementById('scrText').value})">显示文字</button>
+ <button onclick="agent('/displayoff',{})">清除</button></div>
+ <div class="row" style="margin-top:6px">
+  <input id="imgFile" type="file" accept="image/*" style="flex:1;min-width:220px">
+  <button onclick="screenImg()">显示图片</button>
+  <button onclick="screenImgClear()">清除图片</button>
+  <label style="color:var(--dim)">最长边</label>
+  <input id="imgMax" type="number" value="800" style="width:70px" title="超过就等比缩小；机器人屏幕是 800x480">
+  <select id="imgMode" title="适应=完整显示（可能留黑边）；填满=铺满屏幕（可能裁边）">
+   <option value="fit">适应</option>
+   <option value="crop">填满</option>
+  </select>
+ </div>
+ <div class="log" id="imgLog">—</div>
+ <div style="color:var(--dim);font-size:12px">在<b>这台设备</b>的浏览器里挑一张图 → 读成 base64 → 机器人解码显示（POST /img），支持 jpg/png/gif/bmp/webp。★ 页面由机器人自己发出，所以它<b>读不到你电脑上的路径</b>，只能走这个上传。</div>
+</section>
+
+<section><h2>⑧ 麦克风（机器人侧录音）</h2>
+ <div class="row"><label>时长(秒)</label><input id="micSec" type="number" value="5" min="1" max="60" style="width:70px">
+ <button onclick="micStart()">开始录音</button>
+ <button onclick="agent('/mic',{on:false})">停止</button>
+ <button onclick="micList()">刷新列表</button></div>
+ <div class="g" id="micFiles"></div>
+</section>
+
+<section><h2>⑨ 音量 / 电量 / 状态</h2>
+ <div class="row"><label>音量</label><input type="range" id="vol" class="vol" min="0" max="15" value="8"
+  oninput="avShow('vol')" onchange="avSetVol(+this.value)">
+  <span id="volVal" style="color:var(--dim)">—</span>
+  <button onclick="avRead()">读取实际值</button>
+  <button onclick="refreshStatus()">刷新状态</button></div>
+ <div class="row"><label>电量</label>
+  <span id="batBox" style="color:var(--dim)">—</span>
+  <button onclick="batRead()">读电量</button>
+  <button onclick="agent('/battery',{})" title="原样回一份完整 JSON">看原始值</button></div>
+ <div style="color:var(--dim);font-size:12px">
+  ★ 电量走 <code>GET /battery</code>（与 <code>/status.battery_detail</code> 同源）。
+  本机只有"格数"是<b>原厂在推</b>的（<code>ACTION_BATTERY_CHANGED</code>，随插拔/充电自动刷新）；
+  电压/温度/健康是 Android 标准字段，本 ROM <b>喂没喂要当场看</b> —— 没喂到就显示 <code>—</code>，不假装。
+ </div>
+ <div style="color:var(--dim);font-size:12px">
+  ★ 语音「声音大一点 / 增大音量」「小点声 / 减少音量」与这里的滑条走<b>同一个</b>出口。<br>
+  ★ 「屏幕亮度」功能已于 v201 <b>移除</b>：本机背光物理不可调（直写 sysfs / 系统设置 / 窗口亮度
+  三路实测均无效），任何"调亮度"都只能把<b>画面</b>叠黑压暗（能变暗但<b>不省电</b>），故不再提供。
+ </div>
+ <div class="log" id="statusLog">—</div>
+</section>
+
+<section><h2>⑩ 机器人状态（触摸 / 陀螺仪 / 电量 / 电机姿态）</h2>
+ <div class="log" id="stateBox">—</div>
+ <div class="row">
+  <button onclick="refreshState()">刷新</button>
+  <button onclick="agent('/sensorquery',{})">查询陀螺仪状态</button>
+  <button onclick="agent('/gsensorcali',{})">陀螺仪校准</button>
+  <button onclick="document.getElementById('evAuto').checked=!document.getElementById('evAuto').checked;refreshState()">
+   <input type="checkbox" id="evAuto" checked onclick="event.stopPropagation()" style="vertical-align:-2px"> 自动刷新</button>
+ </div>
+ <div class="log" id="evBox">—</div>
+ <div class="row" style="border-top:1px dashed var(--line);padding-top:8px">
+  <label>方位 / 朝向</label>
+  <button onclick="doaAct('probe')" title="在机器人本地分别录 5 段音做互相关，约 7 秒">双麦能否定位</button>
+  <button onclick="doaAct('look')">看用户在哪</button>
+  <button onclick="doaAct('touch','l')">假装摸左脸</button>
+  <button onclick="doaAct('touch','r')">假装摸右脸</button>
+  <button onclick="doaAct('rot')">锁定屏幕横向</button>
+  <span id="doaState" style="color:var(--dim);font-size:12px"></span></div>
+ <div class="log" id="doaBox" style="max-height:150px;overflow:auto">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  方位来源有两种：<b>doa</b>=双麦时延差算出来的；<b>touch</b>=摸到哪半边脸（确定信息，不是估计）。<br>
+  真机实测本机 STEREO 两路<b>逐采样完全相同</b>（是 HAL 把单路复制两份），
+  所以 doa 在这台 ROM 上取不到方向，实际生效的一直是 touch。
+  屏幕朝向固定为横向（面板原生 800×480，原厂 FaceActivity 也声明横向）。</div>
+ <div style="color:var(--dim);font-size:12px">
+  触摸/按键/陀螺仪姿态事件来自原厂硬件广播（逆向 xldbasesdk 得到），倾角来自本机 IMU；
+  电机姿态为最近下发的关节姿态与动作（引擎独占串口，无法直接读舵机角度）。
+ </div>
+</section>
+
+<section data-pconly="1" style="display:none"><h2>⑪ 对话日志（机器人说了什么 / AI 答了什么）</h2>
+ <div class="row">
+  <button onclick="loadDlg(true)">刷新</button>
+  <button onclick="dlgAuto()"><input type="checkbox" id="dlgAutoOn" checked
+    onclick="event.stopPropagation()" style="vertical-align:-2px"> 自动刷新</button>
+  <label style="color:var(--dim)">显示</label>
+  <select id="dlgN" onchange="loadDlg()">
+   <option value="20">最近 20 条</option>
+   <option value="50" selected>最近 50 条</option>
+   <option value="200">最近 200 条</option>
+  </select>
+  <button onclick="dlgClear()">清屏</button>
+  <span id="dlgState" style="color:var(--dim);font-size:12px"></span>
+ </div>
+ <div class="log" id="dlgBox" style="max-height:260px;overflow:auto">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  机器人有三条对话通路，这里统一收：<b>网关</b>=机器人 POST 上来由控制台选的大脑回答；
+  <b>直连</b>=机器人自己的 key 直接问大模型；<b>原厂xxx</b>=用户话透传给原厂再由原厂打回网关；
+  <b>心跳</b>=没人理它时它自己说的那句。<br>
+  一句话只会在<b>其中一条</b>上出现 —— 想知道"到底谁答的"，看括号里那行就行。
+  落盘在 <code id="dlgPath">captures/dialog-*.jsonl</code>，控制台清屏只清内存、不动磁盘。
+ </div>
+</section>
+
+<section data-pconly="1" style="display:none"><h2>⑫ 应急聊天（网页版 DeepSeek，不需要 API Key）</h2>
+ <div class="row">
+  <button onclick="window.open('https://chat.deepseek.com/','_blank')">打开网页版 DeepSeek</button>
+  <button onclick="copyQ()">取机器人听到的话</button>
+  <button onclick="pasteClip()">读剪贴板回复</button>
+ </div>
+ <div class="row"><input id="emQ" style="flex:1;min-width:240px"
+   placeholder="机器人最近听到的话（点上面按钮自动取）"></div>
+ <textarea id="emText" rows="3"
+   placeholder="把网页版 DeepSeek 的回答粘贴到这里 → 点下面按钮，机器人会念出来并配表情动作"></textarea>
+ <div class="row">
+  <button onclick="emergency()">发给机器人（自动配表情动作）</button>
+  <span style="color:var(--dim);font-size:12px">本地按情绪配表情与动作，不依赖大模型；主 LLM 欠费/断网时也能用</span>
+ </div>
+</section>
+
+<section><h2>⑬ 原厂接口（直接调 xldbasesdk）</h2>
+ <div class="row">
+  <button onclick="sdkProbe()">探测可用接口</button>
+  <button onclick="sdkStat()">读引擎状态</button>
+  <button onclick="sdkEvents()">看事件流</button>
+  <select id="sdkPreset" onchange="sdkFill()">
+   <option value="">— 预置动作序列 —</option>
+   <option value="hug,cheer,comeon">打招呼三连（拥抱→欢呼→加油）</option>
+   <option value="hiLefthand,hiRighthand,handshake">挥手 + 握手</option>
+   <option value="liftHands,cheer,dance_LAM0RA">举双手→欢呼→定格舞</option>
+   <option value="dance_L0M0R0,dance_L5M0R5,dance_L9M0R9">三支舞曲连播</option>
+   <option value="stand,wake,stStand">站好→醒来→立正</option>
+  </select>
+ </div>
+ <div class="row">
+  <input id="sdkSeries" style="flex:1;min-width:260px"
+         placeholder="动作名逗号分隔，如 hug,cheer,dance_L0M0R0（可用③里的名字）">
+  <input id="sdkDelay" type="number" value="0" min="0" step="200" style="width:96px"
+         title="每个动作之间的间隔毫秒；0 = 由引擎自身推进">
+  <button onclick="sdkSeries()">播放序列</button>
+ </div>
+ <div class="row">
+  <input id="sdkBpm" type="number" value="60" min="20" max="200" style="width:80px"
+         title="节奏 bpm（原厂 radomDance 的参数是节奏，不是次数）">
+  <button onclick="sdkBpm()">原厂随机舞（按节奏）</button>
+  <button onclick="sdk('/sdk/stop')">停止动作</button>
+  <button onclick="sdk('/sdk/release')">释放控制权</button>
+ </div>
+ <div class="row" id="sdkLed"><span style="color:var(--dim);font-size:12px">点「探测可用接口」后这里出现原厂灯光按钮</span></div>
+ <div class="row">
+  <button onclick="sdk('/sdk/flag',{battery_low:'true'})" title="置位后原厂门面会拒绝动作，用于排查">置低电量标志</button>
+  <button onclick="sdk('/sdk/flag',{battery_low:'false'})">清低电量标志</button>
+  <span style="color:var(--dim);font-size:12px">（ADB / 重启 / 关机 <b>不在本页提供</b> —— 本页在局域网内谁都能打开，这类操作请走 adb）</span>
+ </div>
+ <div class="log" id="sdkBox">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  这一区走<b>原厂自己的 API</b>，不是前面那些我们重写的通道：动作序列用
+  <code>EngineService.baseAction</code>，随机舞用 <code>radomDance(节奏bpm)</code>，
+  灯光/电源/ADB 用原厂 <code>SystemMethod</code> 静态方法（拿不到才退回广播兜底）。
+  机器人端 LediAgent 合并的是原厂 <code>v1.5.10</code> 的 dex，该版本被 R8 混淆过，
+  类名变成了 <code>xldbasesdk.b</code> / <code>xldbasesdk.b.a</code>，
+  所以「探测可用接口」会告诉你在这台机器上到底哪些能调、哪些只能广播。
+ </div>
+</section>
+
+<section><h2>⑭ 屏幕投屏（看屏幕 · 点屏幕）</h2>
+ <div class="row">
+  <button id="castBtn" onclick="castToggle()">▶ 开始投屏</button>
+  <label>尺寸</label>
+  <select id="castSize">
+   <option value="800" selected>800x480 原生</option>
+   <option value="640">640x384</option>
+   <option value="480">480x288 省流量</option>
+  </select>
+  <label>码率</label>
+  <select id="castBr">
+   <option value="1000000">1 Mbps</option>
+   <option value="2000000" selected>2 Mbps</option>
+   <option value="4000000">4 Mbps</option>
+  </select>
+  <button onclick="castApplyCfg()">应用</button>
+  <span id="castInfo" style="color:var(--dim)">未投屏</span>
+ </div>
+ <div class="row">
+  <button onclick="castKey('home')">🏠 Home</button>
+  <button onclick="castKey('back')">◀ Back</button>
+  <button onclick="castKey('enter')">⏎ Enter</button>
+  <button onclick="castKey('menu')">☰ Menu</button>
+  <button onclick="castKey('power')">⏻ 开关屏</button>
+  <input id="castTextIn" placeholder="英文/数字（中文用 ⑦ 显示）" style="width:180px">
+  <button onclick="castSendText()">⌨ 打字</button>
+  <button onclick="castShot()">📷 拍一张</button>
+ </div>
+ <div id="castWrap" style="position:relative;background:#05070d;border:1px solid var(--line);
+   border-radius:10px;overflow:hidden;display:flex;justify-content:center;min-height:110px">
+  <canvas id="castCv" width="800" height="480"
+   style="max-width:100%;height:auto;display:block;cursor:crosshair;touch-action:none"></canvas>
+  <div id="castMsg" style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;
+   align-items:center;justify-content:center;color:var(--dim);font-size:13px;
+   text-align:center;padding:14px;line-height:1.8">
+   点上方「开始投屏」就能看到机器人屏幕；<b>在画面上直接点 / 拖 / 按住，就是点 / 拖 / 长按机器人</b>。
+  </div>
+ </div>
+ <div class="log" id="castLog">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  画面走机器人自己的 <b>screenrecord 硬件 H.264</b>，浏览器用 <b>WebCodecs</b> 解码。
+  不是"每帧一张图"的轮询 —— 本机实测截屏压 PNG 单帧要 640ms，那样只有 1.5fps。<br>
+  ★ <b>帧率取决于画面变不变</b>（screenrecord 只在画面变化时吐帧，这是它省 CPU 的方式，
+  不是故障）：<b>画面在动时实测 46fps</b>（466 帧/10s，932 kbps）；<b>画面静止时只有 1~6fps</b>。
+  所以机器人发呆时画面看着"卡住"是正常的，它一动就流畅。<br>
+  ★ screenrecord 自带 <b>170 秒</b>上限，到点会自动重连（日志里会写），这是它的限制、不是故障。<br>
+  ★ 机器人屏保时画面就是屏保本身，也能点。但注意屏保<b>不认"轻点"</b>（防误触，v142 起）：
+  要把它叫醒，用 <b>按住画面 ≥5 秒</b>、或直接 <code>POST /sleep {"on":false}</code>。<br>
+  ★ 坐标按画面比例换算成机器人屏的像素，所以把浏览器窗口拉多大都不影响落点。<br>
+  ★ 注入开关：<code>POST /console/mirror {"inject":false}</code> 可整个关掉远程点屏。
+  <br>★ 诚实口径：<code>injectInputEvent</code> 偶发会返回 false（约两成），那种情况下这里如实报
+  <code>ok:false</code>，不会假装点成功。
+ </div>
+</section>
+
+<section><h2>⑮ 长期常听 · 多轮思考（v202）</h2>
+ <div class="row"><label>常听</label>
+  <span id="lsOn" style="color:var(--dim)">—</span>
+  <button onclick="listenSet({on:true})">开始听</button>
+  <button onclick="listenSet({on:false})">停止</button>
+  <button onclick="listenRead()">刷新</button></div>
+ <div class="row">
+  <label>开机自动听</label>
+  <label style="color:var(--dim)"><input type="checkbox" id="lsAuto"
+    onchange="listenSet({autostart:this.checked})" style="vertical-align:-2px"> 重启后自动进入常听</label>
+  <label style="color:var(--dim)">识别语法</label>
+  <select id="lsGram" onchange="listenSet({grammar:this.value})">
+   <option value="cmd">命令词表（53 条固定说法，离线更准）</option>
+   <option value="free">自由识别（要跟 AI 聊天用这个）</option>
+  </select>
+ </div>
+ <div class="row">
+  <label>多轮思考</label>
+  <label style="color:var(--dim)"><input type="checkbox" id="lsThink"
+    onchange="listenSet({think:this.checked})" style="vertical-align:-2px"> 语音回复先"想几步"再答</label>
+ </div>
+ <div style="color:var(--dim);font-size:12px">
+  ★ 「常听」= 不等唤醒词，一直听（v75 就有）。v202 补的是<b>持久化</b>：<br>
+  &nbsp;&nbsp;· <b>开机自动听</b>：勾上后写进 prefs，Service 起来时自动进入常听 ——
+  以前开关只活在内存里（<code>contRunning</code> 是进程内 static），<b>重启就丢</b>。<br>
+  &nbsp;&nbsp;· 常听与唤醒词<b>互斥</b>（只有一路麦）；机器人说话期间暂停识别是<b>设计</b>不是丢帧。<br>
+  &nbsp;&nbsp;· 深睡（屏保）会停常听；退出深睡时若勾了"开机自动听"会自动恢复。<br>
+  ★ 「多轮思考」= 回答前允许模型先向本机要信息 / 让机器人先做个动作，再给最终话
+  （协议见下，最多 6 轮）。关掉就是老的单轮问答。
+ </div>
+ <div class="row" style="border-top:1px dashed var(--line);padding-top:8px">
+  <label>试跑一次</label>
+  <input id="tkGoal" style="flex:1;min-width:220px" placeholder="例如：看看你现在还有多少电，然后告诉我该不该充电">
+  <label style="color:var(--dim)">轮数</label>
+  <input id="tkRounds" type="number" value="3" min="1" max="6" style="width:60px">
+  <button onclick="thinkRun()">跑多轮思考</button>
+  <button onclick="thinkSelfTest()">跑自检（不联网）</button>
+ </div>
+ <div class="log" id="tkBox" style="max-height:220px;overflow:auto">—</div>
+ <div class="log" id="lsBox" style="max-height:120px;overflow:auto">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  ★ 模型协议（纯文本，不用 function-calling —— 各家格式不一、嵌套 JSON 太脆）：<br>
+  每一行要么是 <code>TOOL 工具名 参数</code>（执行后把结果喂回去继续想），
+  要么是 <code>FINAL 最终话</code>（就结束）。<br>
+  可用工具：<code>state / battery / time / faces / motions / volume / face / motion / led / say / stop</code>
+  —— <b>全是本机白名单能力，不含任何破坏性动作</b>（关机/重启/关ADB/关网关都不在里面）。<br>
+  ★ 失败一律<b>降级不抛</b>：用满轮数还没给 FINAL 就如实回 <code>ok:false</code> + trace，不硬凑半截话。
+ </div>
+</section>
+
+<section><h2>⑯ 简易 workflow（v203）</h2>
+ <div style="color:var(--dim);font-size:12px">
+  ★ 说话以后机器人<b>自己决定</b>要哪些数据与功能 → <b>查本机能力索引</b> → <b>一次交出一串步骤执行</b>。<br>
+  &nbsp;&nbsp;· 能力索引是<b>自省</b>出来的（动作表 / 表情表现场读），说明书打包在
+  <code>assets/ledi_caps.txt</code> 随包发布 —— 不依赖设备上的外部文件。<br>
+  &nbsp;&nbsp;· 一份流程 = 一行一步 <code>op 参数</code>；<b>写入前逐行预检</b>，任何一行不合法就
+  <b>整份拒绝、一步都不执行</b>。<br>
+  &nbsp;&nbsp;· 执行时<b>某一步失败即中止整条</b>（不硬着头皮往下跑），流水单独落盘到
+  <code id="wfLogPath">/sdcard/ledi_workflow_run.log</code>。<br>
+  &nbsp;&nbsp;· 同时<b>只允许一条</b>流程在跑；破坏性 op（关机/重启/关ADB/关网关）被<b>明确拒绝</b>。
+ </div>
+ <div class="row">
+  <label>语音入口</label>
+  <label style="color:var(--dim)"><input type="checkbox" id="wfOn"
+    onchange="wfSet({workflow:this.checked})" style="vertical-align:-2px"> 允许机器人自己检索能力并一次编排</label>
+  <button onclick="wfStatus()">刷新</button>
+ </div>
+ <div class="row">
+  <label>步骤</label>
+  <textarea id="wfText" style="flex:1;min-width:260px;height:96px;font-family:monospace"
+    placeholder="battery&#10;motion hug&#10;wait 500&#10;face happy1&#10;say 抱抱你～"></textarea>
+ </div>
+ <div class="row">
+  <label>保存为</label>
+  <input id="wfName" style="width:140px" placeholder="例如 早安">
+  <button onclick="wfSave()">保存（先预检）</button>
+  <button onclick="wfRun(false)">执行（等它跑完）</button>
+  <button onclick="wfRun(true)">后台执行</button>
+  <button onclick="wfSelfTest()">跑自检（不联网）</button>
+ </div>
+ <div class="row">
+  <label>已保存</label>
+  <select id="wfList" onchange="wfLoad()" style="min-width:180px"></select>
+  <button onclick="wfDel()">删除所选</button>
+  <button onclick="wfRollback()">回滚（停动作/音量/表情）</button>
+ </div>
+ <div class="log" id="wfBox" style="max-height:230px;overflow:auto">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  ★ 可用 op：<code id="wfAllowed">—</code><br>
+  ★ 查询能力索引：<input id="wfQ" style="width:140px" placeholder="握手 / 电量 / 跳舞">
+  <button onclick="wfCaps()">查</button>
+  <span id="wfCapsHint" style="color:var(--dim)"></span>
+ </div>
+ <div class="log" id="wfCapsBox" style="max-height:170px;overflow:auto">—</div>
+</section>
+
+<section><h2>⑰ 性格 · 情绪 · 记忆（v214）</h2>
+ <div style="color:var(--dim);font-size:12px">
+  ★ 四样东西分工不同，别混：<b>性格</b>=它是个什么性子（说话的底色）；
+  <b>情绪</b>=此刻的脸（快变量，会自己回落）；<b>心情</b>=最近的说话情绪（慢变量，被夸变好 / 被骂变差）；
+  <b>记忆</b>=它记着你的事和"认识第几天"（<b>存在机器人本地</b>，可一键忘记）。
+ </div>
+ <div class="row"><label>性格</label>
+  <select id="chStyle" style="min-width:210px"></select>
+  <button onclick="chApplyStyle()">切换</button>
+  <span id="chStyleNow" style="color:var(--dim)">—</span>
+  <button onclick="chRead()">刷新</button>
+ </div>
+ <div class="row">
+  <label>自定义性格</label>
+  <input id="chName" style="width:120px" placeholder="名字（≤16字）">
+  <input id="chClause" style="flex:1;min-width:240px" placeholder="它该怎么说话（一句话，≤400字）">
+  <button onclick="chSaveCustom()">保存并选中</button>
+  <button onclick="chDelCustom()">删除所选</button>
+ </div>
+ <div class="row"><label>情绪</label>
+  <span id="chEmo" style="color:var(--dim)">—</span>
+  <button onclick="chEmoReset()">回基线</button>
+ </div>
+ <div class="row"><label>记忆</label>
+  <span id="chMem" style="color:var(--dim)">—</span>
+  <button onclick="chMemRead()">刷新</button>
+ </div>
+ <div class="row">
+  <label>记住</label>
+  <input id="chFact" style="flex:1;min-width:220px" placeholder="例如：我喜欢猫、我在杭州">
+  <button onclick="chRemember()">让它记住</button>
+ </div>
+ <div class="row">
+  <label>忘记</label>
+  <button onclick="chForget('facts')">忘记"事"</button>
+  <button onclick="chForget('talk')">忘记"对话"</button>
+  <button onclick="chForget('all')">全忘光</button>
+  <span style="color:var(--dim);font-size:12px">★ 返回里带"删前/删后字节"，真删干净才算 ok</span>
+ </div>
+ <div class="log" id="chBox" style="max-height:200px;overflow:auto">—</div>
+ <div style="color:var(--dim);font-size:12px">
+  ★ <b>忘记</b>是真删机器人本地文件（含对话流水的轮转件），返回值里的 <code>ok</code> 由
+  <b>删完回读的字节数</b>算出来 —— 想核对：忘完再点两次"刷新"，记忆与对话两处都该是空的。<br>
+  ★ 自定义性格也存在机器人本地；删掉正在用的那条会自动回到默认（不留空档，不会静默失效）。<br>
+  ★ 性格切换的落点是 <code>POST /tone {"style":"…"}</code>；语音里说"说话温柔点 / 干脆点"也走同一条路。
+ </div>
+</section>
+
+<section><h2>操作日志</h2>
+ <div class="log" id="log">—</div>
+</section>
+
+</main>
+<script>
+const $=id=>document.getElementById(id);
+// 页面 HTML 由 Python 三引号字符串承载，写 '\n' 会被 Python 先解释成真换行、
+// 从而在 JS 字符串里留下裸换行、整段 script 报语法错误 → 统一用这个常量代替。
+const NL=String.fromCharCode(10);
+let CFG=null;
+function log(s){const l=$('log');l.textContent='['+new Date().toLocaleTimeString()+'] '+s+'\n'+l.textContent;}
+async function api(p,body,method){
+  const r=await fetch(p,{method:method||(body?'POST':'GET'),
+    headers:{'Content-Type':'application/json'},
+    body:body?JSON.stringify(body):undefined});
+  const t=await r.text();try{return JSON.parse(t)}catch(e){return t}
+}
+async function agent(path,body){
+  if(!CFG||!CFG.agent||!CFG.agent.addr){log('✗ 没读到本机配置（刷新页面）');return}
+  const r=await api('/console/agent',{path:path,body:body||{}});
+  log(path+' → '+JSON.stringify(r));
+}
+// ⑨ 音量 —— 滑条上的数字只是"我想设成多少"，真实值一律以**回读**为准
+// （本项目的规矩：不认"请求已发送"）。滑条在 onchange 后立刻 avRead() 对账，
+// 所以"设了但没生效"会当场看得见，而不是停在滑条以为自己成功的位置上。
+// ★ v201：「屏幕亮度」已移除（本机背光不可调，只能叠黑压暗、不省电），
+//   亮度滑条、avSetBrt、以及 avRead 里的 /bright 分支都已删掉。
+function avShow(id){const el=$(id),o=$(id+'Val');if(!el)return;if(o)o.textContent=el.value;}
+async function avSetVol(v){await agent('/volume',{v:+v});await avRead();}
+async function avRead(){
+  try{
+    const v=await api('/console/agent',{path:'/volume'});
+    const ve=$('vol');
+    if(v&&typeof v.volume==='number'&&ve){
+      if(v.max>0)ve.max=v.max;
+      ve.value=v.volume;avShow('vol');
+      if($('volVal'))$('volVal').textContent=v.volume+'/'+(v.max>0?v.max:'?');
+    }
+  }catch(e){}
+}
+function fatal(msg){ const b=$('st'); if(b){b.textContent='✗ '+msg; b.style.color='#ff6b6b';} log('✗ '+msg); }
+function CNT(o,k){ return (o&&o.counts&&o.counts[k]!=null)?o.counts[k]:'?'; }
+// 每个区块独立 try/catch：以前任意一处抛错都会让「动作/表情/姿态」一起变空白，而且毫无提示
+function step(label,fn){ try{ fn(); }catch(e){ log('✗ 区块「'+label+'」渲染失败：'+((e&&e.message)||e)); } }
+async function loadCfg(){
+  try{ CFG=await api('/console/config'); }
+  catch(e){ CFG=null; fatal('读取本机配置失败：'+e+' —— 本页由机器人自己提供，刷新一下即可'); return; }
+  if(!CFG){ fatal('网关没有返回配置'); return; }
+  step('①配置',function(){
+    $('llmBase').value=(CFG.llm||{}).base||'';$('llmModel').value=(CFG.llm||{}).model||'';
+    $('agentAddr').value=(CFG.agent||{}).addr||'';
+    paintBrain(CFG.brain||{mode:'api'});
+    paintFind(CFG.discover||null);
+    paintHB(CFG.heartbeat||null);
+    $('st').textContent='模式 '+CFG.mode+' · v'+CFG.version+' · 机器人 '
+      +((CFG.agent||{}).addr||'未配置')+((CFG.agent&&CFG.agent.enabled===false)?'(已停用)':'')
+      +' · 动作'+CNT(CFG,'motions')+'(普通'+CNT(CFG,'normal')+'+舞蹈'+CNT(CFG,'dance')+')'
+      +' 表情'+CNT(CFG,'faces')+(CFG.faces_source==='robot'?'(机器人实时)':'(内置表)');
+  });
+  const mk=(host,arr,fn)=>{
+    if(!host){ log('✗ 按钮容器缺失，无法渲染'); return; }
+    host.innerHTML='';
+    const L=arr||[];
+    L.forEach(n=>{ const b=document.createElement('button'); b.textContent=n;
+      b.onclick=()=>{ try{ fn(n); }catch(e){ log('✗ 点击 '+n+' 失败：'+e); } };
+      host.appendChild(b); });
+    if(!L.length) host.innerHTML='<span style="color:#8b93a5;font-size:12px">（空 —— 检查机器人是否在线）</span>';
+  };
+  // ③ 动作：普通动作 / 舞蹈 分组
+  step('③动作',function(){
+    mk($('motionsNormal'),CFG.motions_normal||CFG.motions,n=>motionGo(n));
+    $('mNormalCnt').textContent='（'+((CFG.motions_normal||CFG.motions||[]).length)+'）';
+  });
+  step('③舞蹈',function(){
+    mk($('motionsDance'),CFG.motions_dance||[],n=>motionGo(n));
+    $('mDanceCnt').textContent='（'+(CFG.motions_dance||[]).length+'）';
+  });
+  // ④ 表情：机器人实时清单（最多 77 个）+ 搜索
+  step('④表情',function(){ renderFaces(); });
+  step('⑤姿态',function(){ mk($('presets'),CFG.presets,n=>poseGo(n)); });
+
+  // 语音引擎固定走机器人自带合成（讯飞），电脑端不再提供第二套合成
+  // 独立 App：顶部显示局域网地址（手机 / 机器人要填的那个）与退出按钮
+  try{
+    const ai=await api('/console/appinfo');
+    const box=$('appinfo'); box.innerHTML='';
+    const sp=document.createElement('span');
+    sp.textContent=(ai.app?'● 桌面版 · ':'')+'局域网 '+ai.lan_ip+':'+ai.port;
+    sp.title='机器人的网关地址、手机端要填的就是它';
+    box.appendChild(sp);
+    if(ai.can_quit){
+      const q=document.createElement('button');
+      q.textContent='退出应用'; q.style.marginLeft='10px';
+      q.onclick=async()=>{
+        if(!confirm('退出乐迪控制器？退出后机器人将无法再获得 AI 回复。')) return;
+        await api('/console/quit',{});
+        document.body.innerHTML='<div style="padding:80px;text-align:center;'
+          +'color:#8b93a5;font:16px/1.8 \'Microsoft YaHei\',sans-serif">'
+          +'乐迪控制器已退出<br><span style="font-size:13px">现在可以关闭本窗口了</span></div>';
+      };
+      box.appendChild(q);
+    }
+  }catch(e){}
+  step('⑥灯光',function(){
+  const leds=$('leds');
+  if(!leds) throw new Error('缺少灯光容器');
+  const LED_COLORS=[['r','红','#ff6b6b'],['g','绿','#5ad18b'],['b','蓝','#4fb3ff'],
+                    ['y','黄','#ffd75e'],['p','粉','#ff9ad5']];
+  const LED_ACTS=[['on','亮'],['off','灭'],['blink.fast','快闪'],['blink.slow','慢闪']];
+  leds.innerHTML='';
+  LED_COLORS.forEach(([c,cn,col])=>{
+    const box=document.createElement('div');
+    box.style.cssText='display:flex;gap:4px;align-items:center;margin:2px 0';
+    const sp=document.createElement('span');
+    sp.textContent=cn; sp.style.cssText='width:22px;color:'+col+';font-size:12px';
+    box.appendChild(sp);
+    LED_ACTS.forEach(([act,label])=>{
+      const b=document.createElement('button');
+      b.textContent=label; b.title=c+' '+act;
+      if(act==='on') b.style.color=col;
+      b.onclick=()=>led(c,act);
+      box.appendChild(b);});
+    leds.appendChild(box);
+  });
+  });
+  try{ refreshStatus(); }catch(e){ log('✗ 状态刷新失败：'+e); }
+}
+// ④ 表情渲染（带搜索 + 可选原厂音效）
+function renderFaces(){
+  if(!CFG)return;
+  const q=($('faceQ')?$('faceQ').value:'').trim().toLowerCase();
+  const all=CFG.faces||[];
+  const list=q?all.filter(n=>n.toLowerCase().includes(q)):all;
+  const host=$('faces'); host.innerHTML='';
+  list.forEach(n=>{
+    const b=document.createElement('button'); b.textContent=n;
+    const snd=$('faceSound')&&$('faceSound').checked;
+    b.onclick=()=>agent('/face',{name:n,sound:!!snd});
+    host.appendChild(b);});
+  if($('faceCnt')) $('faceCnt').textContent=list.length+'/'+all.length;
+}
+// ③ 动作下发（舞曲走 specialDance，普通动作走 moveInterface；机器人端自动分流）
+async function motionGo(name){
+  if(!CFG||!CFG.agent||!CFG.agent.addr){log('✗ 未配置机器人地址（①里保存）');return}
+  const r=await api('/console/agent',{path:'/motion',body:{name:name}});
+  const kind=(r&&r.kind)?r.kind:'';
+  log('/motion '+name+(kind?' ['+kind+']':'')+' → '+JSON.stringify(r));
+  if($('motionLog')) $('motionLog').textContent=name+' → '+JSON.stringify(r);
+}
+// ⑤ 默认姿态下发：预置名必须走网关自己的 /pose —— 编译（预置名→帧数组）是在网关做的。
+//    直接丢给机器人 Agent 只会得到 "ERROR frame 0 needs 4 values (ms,j1,j2,j3)"。
+async function poseGo(name){
+  // 走 /poserun（按名字运行机器人上已有的姿态）。原来的 /pose{spec:name} 依赖
+  // 网关在 PC 侧把预置名编译成帧数组，机器人端 /pose 收的是帧数组。
+  const r=await api('/poserun',{name:name});
+  log('/pose '+name+' → '+JSON.stringify(r));
+  if($('motionLog')) $('motionLog').textContent='姿态 '+name+' → '+JSON.stringify(r);
+  return r;
+}
+// ⑦ 屏幕显示电脑上的图片：电脑读文件 + 纠方向 + 缩放 → base64 → 推到机器人屏幕
+async function screenImg(){
+  // 机器人自带版：原来填的是"电脑上的路径"、由电脑端读文件再送 base64。
+  // 页面现在由机器人自己发出 ⇒ 读不到你电脑上的本地文件，改成浏览器选文件。
+  const f=$('imgFile')&&$('imgFile').files&&$('imgFile').files[0];
+  if(!f){log('✗ 先点「选择文件」挑一张图片');return}
+  const mx=+($('imgMax').value||800)||800;
+  const md=($('imgMode')&&$('imgMode').value)||'fit';
+  if($('imgLog')) $('imgLog').textContent='读取并推送中… '+f.name;
+  const b64=await new Promise((ok,no)=>{const r=new FileReader();
+    r.onload=()=>ok(String(r.result).split(',')[1]||''); r.onerror=no; r.readAsDataURL(f);});
+  if(!b64){if($('imgLog'))$('imgLog').textContent='✗ 读文件失败';return}
+  const r=await api('/img',{data:b64,max:mx,mode:md});
+  if($('imgLog')) $('imgLog').textContent=f.name+' → '+JSON.stringify(r);
+  log('显示图片 '+f.name+'（'+(f.size/1024|0)+'KB）→ '+JSON.stringify(r));
+}
+async function screenImgClear(){
+  if($('imgLog')) $('imgLog').textContent='—';
+  await agent('/displayoff',{});
+  log('已清除屏幕上的图片');
+}
+// 语音引擎诊断（并入 ② 让机器人说话）
+async function ttsStatus(){
+  if(!CFG||!CFG.agent||!CFG.agent.addr){log('✗ 未配置机器人地址（①里保存）');return}
+  const r=await api('/console/ttsstatus');
+  $('sayLog').textContent=JSON.stringify(r,null,1);
+  log('语音引擎检测 → '+JSON.stringify(r.robot));
+}
+// ⑬ 原厂接口（直调 xldbasesdk）
+async function sdk(path,body){
+  if(!CFG||!CFG.agent||!CFG.agent.addr){log('✗ 未配置机器人地址（①里保存）');return null}
+  const r=await api('/console/agent',{path:path,body:body||{}});
+  const b=$('sdkBox'); if(b) b.textContent=path+' → '+JSON.stringify(r,null,1);
+  log(path+(body?' '+JSON.stringify(body):'')+' → '+JSON.stringify(r));
+  return r;
+}
+function sdkFill(){ const v=$('sdkPreset').value; if(v) $('sdkSeries').value=v; }
+function sdkSeries(){
+  const names=($('sdkSeries').value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(!names.length){log('✗ 先填动作名，用逗号分隔');return}
+  const d=parseInt($('sdkDelay').value||'0',10)||0;
+  sdk('/sdk/series',{names:names,delay:d});
+}
+function sdkBpm(){
+  const n=parseInt($('sdkBpm').value||'60',10)||60;
+  sdk('/sdk/bpm',{bpm:n});
+}
+function sdkSys(what){
+  if(what==='poweroff'&&!confirm('确定让机器人关机？')) return;
+  if(what==='reboot'&&!confirm('确定重启机器人？')) return;
+  sdk('/sdk/sys',{what:what});
+}
+async function sdkStat(){
+  const r=await api('/console/sdk');
+  const st=(r&&r.stat)||{};
+  $('sdkBox').textContent=JSON.stringify(st,null,1);
+  log('引擎状态 → '+JSON.stringify(st));
+}
+async function sdkEvents(){
+  const r=await api('/console/sdk');
+  const ev=(r&&r.events)||{};
+  const list=ev.events||[];
+  const lines=list.map(e=>e.t+'  '+e.m+'  '+e.event+(e.extra?'('+e.extra+')':''));
+  $('sdkBox').textContent='最近事件：'+(ev.last||'（无）')+'\n'
+    +(lines.length?lines.join('\n'):'（还没有事件）');
+  log('原厂事件流 → 共 '+list.length+' 条');
+}
+async function sdkProbe(){
+  const r=await api('/console/sdk');
+  const c=(r&&r.caps)||{};
+  if(c.error||!c.classes){$('sdkBox').textContent=JSON.stringify(r,null,1);log('✗ 探测失败');return}
+  const ca=c.classes, ea=c.engine_api||{}, sa=c.system_api||{};
+  const led=sa.led||{}, sy=sa.sys||{};
+  const okE=Object.keys(ea).filter(k=>ea[k]===true);
+  const noE=Object.keys(ea).filter(k=>ea[k]!==true);
+  const ledYes=Object.keys(led).filter(k=>led[k]===true);
+  const syYes=Object.keys(sy).filter(k=>sy[k]===true);
+  $('sdkBox').textContent=
+     '构建      '+c.build+'   引擎实例='+c.engine+'\n'
+    +'引擎类    '+(ca.engine||'-')+'\n'
+    +'SDK 门面  '+(ca.facade||'（无）')+'\n'
+    +'系统层    '+(ca.system||'（无）')+'\n'
+    +'动作回调  '+(ca.callback||'（无）')+'\n'
+    +'事件监听  '+(ca.listener||'（无）')+'\n'
+    +'动作 API  '+okE.length+'/'+(okE.length+noE.length)+'  '+okE.join(', ')+'\n'
+    +(noE.length?('缺        '+noE.join(', ')+'\n'):'')
+    +'LED 原厂  '+ledYes.length+' 项可用\n'
+    +'系统动作  '+(syYes.join(', ')||'（无）')+'   [全部: '+Object.keys(sy).join(', ')+']\n'
+    +'事件枚举  '+((c.events||[]).length)+' 种\n'
+    +'额外线索  '+JSON.stringify(c.extras||{});
+  renderSdkLed(led);
+  log('原厂接口探测完成：动作API '+okE.length+' 项，LED '+ledYes.length+' 项');
+}
+function renderSdkLed(led){
+  const host=$('sdkLed'); if(!host) return;
+  const COLORS=[['r','红','#ff6b6b'],['g','绿','#5ad18b'],['b','蓝','#4fb3ff'],
+                ['y','黄','#ffd75e'],['p','粉','#ff9ad5']];
+  host.innerHTML='';
+  const t=document.createElement('span');
+  t.textContent='原厂灯光：';
+  t.style.cssText='color:var(--dim);font-size:12px;margin-right:6px';
+  host.appendChild(t);
+  COLORS.forEach(([c,cn,col])=>{
+    [['on','亮'],['off','灭']].forEach(([act,label])=>{
+      const k=c+'.'+act, has=led[k]===true;
+      const b=document.createElement('button');
+      b.textContent=cn+label; b.title=k+(has?'（原厂方法）':'（广播兜底）');
+      b.style.color=col; if(!has) b.style.opacity='0.5';
+      b.onclick=()=>sdk('/sdk/led',{color:c,action:act});
+      host.appendChild(b);
+    });
+  });
+  [['r','blink.fast','红快闪'],['b','blink.slow','蓝慢闪'],['all','off','全灭']]
+   .forEach(([c,act,label])=>{
+    const has=led[c+'.'+act]===true;
+    const b=document.createElement('button');
+    b.textContent=label; b.title=c+'.'+act+(has?'（原厂方法）':'（广播兜底）');
+    if(!has) b.style.opacity='0.6';
+    b.onclick=()=>sdk('/sdk/led',{color:c,action:act});
+    host.appendChild(b);
+  });
+}
+// ===== 大脑：API 还是网页版 DeepSeek =====
+function paintFind(F){
+  // 自动发现的状态条。只说"已经发生的事"：听到广播没、扫了几次、蓝牙连没连。
+  // 不在渲染时触发任何网络动作 —— 刷一次控制台就扫一遍全网段是不可接受的。
+  if(!F||!$('dfState')) return;
+  if($('dfToggle')) $('dfToggle').textContent=F.enabled?'开':'关';
+  const bits=[];
+  bits.push(F.enabled?(F.listening?'听广播中':'广播监听未起'):'已关');
+  const b=(F.beacons||[])[0];
+  bits.push(b?('听到 '+b.ip+'（'+Math.round(b.age)+'s 前）'):'未听到广播');
+  if(F.addr) bits.push('机器人 '+F.addr+(F.how?('（'+F.how+'）'):''));
+  // ★ 这里以前只写"已广播 / 未广播"。可 announce 曾经只看"对象在不在"，
+  //   广播线程被异常打死之后照样显示"已广播"，而机器人早就听不到了 ——
+  //   最难查的一种故障。现在：线程没了要说出来；发出去过但很久没成功也要说。
+  if(F.announce){
+    bits.push('已广播本机 '+F.lan+':'+F.port
+      +((F.announce_ago>=15)?('（★ 已 '+Math.round(F.announce_ago)+'s 没发出去）'):''));
+  }else if(F.announce_on){
+    bits.push('★ 反向广播线程没在跑（'+(F.announce_error||'没留下错误')+'）');
+  }else bits.push('未广播本机地址');
+  if(F.announce_targets&&F.announce_targets.length)
+    bits.push('喊给 '+F.announce_targets.length+' 个地址');
+  if(F.announce_fails) bits.push('广播失败 '+F.announce_fails+' 次');
+  if(F.scans) bits.push('扫描'+F.scans+'次');
+  if(F.error) bits.push('· '+F.error);
+  $('dfState').textContent=bits.join(' · ');
+  // 蓝牙隧道那一行。平时一行带过；只有"IP 不通、真在用蓝牙兜底"时才强调，
+  // 因为那时界面上最容易误判成"机器人掉了"。
+  if($('btState')){
+    const B=F.bt||{};
+    if($('btToggle')) $('btToggle').textContent=B.on?'开':'关';
+    if(!B.on) $('btState').textContent='已关 —— 机器人 IP 不通时就调不动它了';
+    else if(!B.ready) $('btState').textContent='未挂上（本机不支持蓝牙 / 缺 robot_finder.py）';
+    else {
+      const b=[];
+      b.push(B.mac?(B.mac+' · 通道 '+(B.channel||'?')+(B.connected?' · 已连接':' · 待连'))
+                   :'未找到已配对设备');
+      if(B.calls) b.push('用过 '+B.calls+' 次');
+      if(B.agent_via==='bt') b.push('★ 此刻正走蓝牙（兜底 '+B.agent_bt_hits+' 次）');
+      if(B.seen_ago!=null) b.push(Math.round(B.seen_ago)+'s 前确认过');
+      if(B.cool_for) b.push('冷却 '+B.cool_for+'s');
+      if(B.last_error) b.push(B.last_error);
+      $('btState').textContent=b.join(' · ');
+    }
+  }
+}
+// ===== 随机心跳：没人理它的时候，AI 自己挑个空闲小动作 =====
+// 和「自动反应」不是一回事：自动反应是"被拿起/被摇/摔倒之后回应一下"，
+// 心跳是"什么都没发生时它自己想起点什么"。两个开关分开，别混。
+function paintHB(H){
+  if(!H||!$('hbState')) return;
+  if($('hbToggle')) $('hbToggle').textContent=H.on?'开':'关';
+  if($('hbMin')&&document.activeElement!==$('hbMin')) $('hbMin').value=H.min_sec;
+  if($('hbMax')&&document.activeElement!==$('hbMax')) $('hbMax').value=H.max_sec;
+  const b=[];
+  if(!H.on) b.push('已关 —— 机器人不会自己找事做');
+  else if(H.next_in>=0) b.push('下一次约 '+Math.round(H.next_in)+'s 后');
+  else b.push('已开，正在排期');
+  b.push('已做 '+H.count+' 次');
+  if(H.skipped) b.push('跳过 '+H.skipped+' 次');
+  if(H.last_run_ago>=0) b.push('上次 '+Math.round(H.last_run_ago)+'s 前');
+  if(H.last_say) b.push('说了“'+H.last_say+'”');
+  else if(H.last_run_ago>=0) b.push('上次只动不说');
+  if(H.last_motion) b.push('动作 '+H.last_motion);
+  // ★ 心跳最常见的"不动"不是坏了，而是被闸门挡了（刚被摸过 / 姿态不是站立 /
+  //   AI 没登录）。把原因直说，不然就是又一个"界面显示正常其实什么都没发生"。
+  if(H.last_skip) b.push('上次跳过：'+H.last_skip);
+  if(H.busy) b.push('正在跑…');
+  if(H.last_error) b.push('★ '+H.last_error);
+  $('hbState').textContent=b.join(' · ');
+}
+async function hbToggle(){
+  const on=$('hbToggle').textContent==='开';
+  const r=await api('/console/heartbeat',{action:'set',on:!on});
+  log('随机心跳 → '+(!on?'开':'关'));
+  if(r&&r.state) paintHB(r.state);
+}
+async function hbSet(){
+  const lo=parseInt($('hbMin').value,10), hi=parseInt($('hbMax').value,10);
+  if(!(lo>0)||!(hi>lo)){ log('✗ 间隔要满足 最短 < 最长，且都大于 0'); return; }
+  const r=await api('/console/heartbeat',{action:'set',min_sec:lo,max_sec:hi});
+  log('心跳间隔 → '+lo+'~'+hi+' 秒（随机）');
+  if(r&&r.state) paintHB(r.state);
+}
+async function hbNow(){
+  $('hbState').textContent='正在问 AI 该做点什么…';
+  try{
+    const r=await api('/console/heartbeat',{action:'now'});
+    if(r&&r.ok) log('✓ 心跳：AI 决定 '+(r.result&&r.result.sent?JSON.stringify(r.result.sent):''));
+    else log('✗ 心跳没跑：'+((r&&r.result&&(r.result.skipped||r.result.error))||'未知'));
+    if(r&&r.state) paintHB(r.state);
+  }catch(e){ log('✗ 心跳：'+((e&&e.message)||e)); }
+}
+async function btToggle(){
+  const on=$('btToggle').textContent==='开';
+  if(on&&!confirm('关掉蓝牙隧道后，机器人一旦 IP 不通（换网段 / 没 WiFi）'
+    +'就没法调它了 —— 这是最后的通道。确定？')) return;
+  const r=await api('/console/discover',{action:'bt-toggle',on:!on});
+  log('蓝牙隧道 → '+(!on?'开':'关'));
+  if(r&&r.state) paintFind(r.state);
+}
+async function dfAct(a){
+  if(a==='pan'&&!confirm('蓝牙兜底会尝试让电脑加入机器人的「个人区域网」'
+    +'（可能弹系统提示，且要等十几秒）。继续？')) return;
+  $('dfLog').textContent=a+' 中…（蓝牙可能要十几秒）';
+  try{
+    const r=await api('/console/discover',{action:a});
+    $('dfLog').textContent=JSON.stringify(r,null,1);
+    if(a==='find') log(r.ok?('✓ 自动发现找到机器人 '+r.addr+'（'+r.how+'，'+r.elapsed+'s）')
+                          :('✗ 自动发现没找到：'+r.detail));
+    else if(a==='announce'){
+      // ★ 别只看"喊了几声"：sent=2 也可能机器人一个都没收到（受限广播就是这样）。
+      //   把目标清单和失败项显示出来，成没成要去机器人 /health 的 pc_beacon 验。
+      const bad=(r.failed||[]).map(x=>x.target+'：'+x.error).join('；');
+      log(bad?('✗ 喊了 '+r.sent+' 个地址但有失败 —— '+bad)
+             :('已向 '+(r.targets||[]).join('、')+' 喊了本机 '+r.lan+':'+r.port
+               +'（机器人收到就会自己记住；去 /health 看 pc_beacon 才算数）'));
+    }
+    else if(a==='pan') log((r.ok?'✓ ':'✗ ')+(r.detail||''));
+    else if(a==='bt-probe'||a==='bt-scan') log((r.ok?'✓ ':'✗ ')+(r.detail||''));
+    else if(a==='announce-check') log((r.ok?'✓ ':'✗ ')+(r.detail||''));
+    if(r.state) paintFind(r.state);
+    loadCfg();
+  }catch(e){ $('dfLog').textContent='✗ '+((e&&e.message)||e); }
+}
+async function dfToggle(){
+  const on=$('dfToggle').textContent==='开';
+  if(on&&!confirm('关掉自动发现后，机器人换 IP 或重启就要自己去①里手改地址了。确定？')) return;
+  await api('/console/config',{discover:{enabled:!on,announce:!on}});
+  log('自动发现 → '+(!on?'开':'关'));
+  loadCfg();
+}
+function paintBrain(B){
+  B=B||{}; const w=(B.web)||{};
+  const isWeb=(B.mode==='web');
+  $('bmApi').style.outline=isWeb?'':'2px solid var(--ac)';
+  $('bmWeb').style.outline=isWeb?'2px solid var(--ac)':'';
+  $('brainState').textContent=isWeb
+    ? ('当前：网页版 DeepSeek · '+(w.alive?'浏览器已开':'浏览器未开')
+       +(w.primed?' · 已灌入人格':' · 尚未灌入人格')+' · 已对话 '+(w.turns||0)+' 轮'
+       +(w.page?(' · '+w.page):''))
+    : ('当前：API'+(B.api&&B.api.enabled?(' · '+(B.api.base||'')):' · 未配置'));
+  // 网页原样回了什么 —— 解析结果不对时第一眼要看的就是它，
+  // 不然只能对着被兜底成"整段话当文本"的结果发呆，分不清是它没按格式还是我们解析错了
+  if(isWeb&&w.last_raw&&$('wbLog').textContent.indexOf('最近一次')<0)
+    $('wbLog').textContent='最近一次网页原文（'+w.last_prompt_len+' 字提示词 → '
+      +w.last_reply_len+' 字回复）:\n'+w.last_raw;
+}
+async function setBrain(mode){
+  const r=await api('/console/config',{brain:{mode:mode}});
+  log('大脑切换 → '+mode+(r&&r.brain?(' · '+JSON.stringify(r.brain.web||{})):''));
+  if(mode==='web') wbAct('open');
+  paintBrain((r&&r.brain)||null); loadCfg();
+}
+async function wbAct(action){
+  $('wbLog').textContent=action+' 中…';
+  try{
+    const r=await api('/console/webbrain',{action:action});
+    $('wbLog').textContent=JSON.stringify(r,null,1);
+    if(r&&r.ok===false) log('✗ 网页大脑 '+action+'：'+(r.error||''));
+    else log('网页大脑 '+action+' → '+JSON.stringify(r));
+    if(action==='open'&&r&&r.on_sign_in) log('提示：窗口里是登录页，请先登录 DeepSeek 再来点「自检」');
+    loadCfg();
+  }catch(e){ $('wbLog').textContent='✗ '+((e&&e.message)||e); }
+}
+async function saveCfg(){
+  const web=CFG&&CFG.brain&&CFG.brain.mode==='web';
+  await api('/console/config',{llm:{base:$('llmBase').value.trim(),
+    key:$('llmKey').value.trim(),model:$('llmModel').value.trim()},
+    brain:{mode:web?'web':'api'},
+    agent:{addr:$('agentAddr').value.trim(),enabled:!!$('agentAddr').value.trim()},
+    tts:{robot_engine:'auto'}});
+  log('✓ 配置已保存并即时生效');
+  loadCfg();
+}
+async function testAll(){
+  const out=[];
+  const h=await api('/console/agent?path=/health');
+  out.push('机器人: '+(typeof h==='string'?h:JSON.stringify(h)));
+  const ts=await api('/console/ttsstatus');
+  out.push('语音引擎: '+JSON.stringify(ts.robot));
+  const isWeb=CFG&&CFG.brain&&CFG.brain.mode==='web';
+  if(isWeb||$('llmBase').value.trim()){
+    const t=await api('/console/llmtest');
+    out.push((isWeb?'网页版 DeepSeek: ':'大模型: ')+JSON.stringify(t));}
+  $('cfgLog').textContent=out.join('\n');
+}
+// ② 让机器人说话：统一走机器人自带合成（讯飞），电脑端不再另做一份 mp3
+async function say(){
+  const t=$('sayText').value.trim();if(!t)return;
+  if(!CFG||!CFG.agent||!CFG.agent.addr){log('✗ 未配置机器人地址（①里保存）');return}
+  const r=await api('/console/tts',{text:t,engine:'auto'});
+  $('sayLog').textContent=(r.engine?'引擎='+r.engine+' ':'')+JSON.stringify(r);
+  log('说话('+(r.engine||'auto')+') → '+JSON.stringify(r));
+}
+async function led(c,a){
+  if(!CFG||!CFG.agent||!CFG.agent.addr){log('✗ 未配置机器人地址（①里保存）');return}
+  const r=await api('/console/agent',{path:'/light',body:{color:c,action:a}});
+  $('ledLog').textContent=c+' '+a+' → '+JSON.stringify(r);
+  log('/light '+c+' '+a+' → '+JSON.stringify(r));
+}
+async function doPose(){
+  const spec=[[+$('pMs').value,+$('pJ1').value,+$('pJ2').value,+$('pJ3').value]];
+  const r=await api('/pose',{spec:spec,run:true,name:'manual'});
+  log('/pose → '+JSON.stringify(r));
+}
+async function micStart(){await agent('/mic',{on:true,seconds:+$('micSec').value||5});
+  log('录音中…'+($('micSec').value||5)+'s');}
+async function micList(){
+  if(!CFG.agent.addr)return;
+  const r=await api('/console/agent?path=/miclist');
+  const host=$('micFiles');host.innerHTML='';
+  let arr=Array.isArray(r)?r:(r&&r.list)||[];
+  if(!arr.length){host.innerHTML='<span style="color:var(--dim)">暂无录音</span>';return}
+  arr.forEach(n=>{const b=document.createElement('button');
+    b.textContent='▶ '+n;
+    b.onclick=()=>{const a=new Audio('/console/micfile?name='+encodeURIComponent(n));a.play();};
+    host.appendChild(b);});
+  log('录音列表: '+JSON.stringify(arr));
+}
+async function refreshStatus(){
+  if(!CFG||!CFG.agent||!CFG.agent.addr){$('statusLog').textContent='未配置机器人';return}
+  const r=await api('/console/agent?path=/status');
+  $('statusLog').textContent=typeof r==='string'?r:JSON.stringify(r,null,1);
+}
+// ===== ⑨ 电量（v202）=====
+// 读的是**机器人本机**（平板/主控）电池。只认回读值，不认"请求已发送"。
+// 缺字段就显示 —（本 ROM 有没有喂电压/温度要当场看，不能假装有）。
+async function batRead(){
+  try{
+    const b=await api('/console/agent?path=/battery');
+    const el=$('batBox'); if(!el) return;
+    if(!b||typeof b!=='object'){ el.textContent=String(b); return; }
+    let s=(b.level>=0? b.level+'%' : '?');
+    if(b.charging) s+=' · 充电中'+((b.plugged_str&&b.plugged_str!=='none'&&b.plugged_str!=='?')?('('+b.plugged_str+')'):'');
+    if(b.voltage_mv>=0) s+=' · '+(b.voltage_mv/1000).toFixed(2)+'V';
+    if(b.temp_c>=0) s+=' · '+b.temp_c+'°C';
+    if(b.health_str&&b.health_str!=='?'&&b.health_str!=='unknown') s+=' · 健康:'+b.health_str;
+    s+=' · 源:'+(b.source||'?');
+    if(b.age_ms>=0) s+=' · '+Math.round(b.age_ms/1000)+'s前';
+    if(b.low_event) s+=' · ⚠低电量事件';
+    el.textContent=s;
+  }catch(e){ log('✗ 读 /battery 失败：'+e); }
+}
+// ===== ⑮ 长期常听 / 多轮思考（v202）=====
+async function listenRead(){
+  try{
+    const r=await api('/console/agent?path=/listen');
+    const s=(r&&r.status)?r.status:(r||{});
+    if($('lsOn')){
+      $('lsOn').textContent = s.on?'开（正在听）':'关';
+      $('lsOn').style.color = s.on?'#4ade80':'var(--dim)';
+    }
+    if($('lsAuto')) $('lsAuto').checked = !!s.autostart;
+    if($('lsThink')) $('lsThink').checked = !!s.think;
+    if($('wfOn')) $('wfOn').checked = !!s.workflow;
+    if($('lsGram')&&s.grammar!=null){
+      const g=String(s.grammar);
+      $('lsGram').value = (g.indexOf('free')>=0)?'free':'cmd';
+    }
+    if($('lsBox')) $('lsBox').textContent = JSON.stringify(s);
+  }catch(e){ log('✗ 读 /listen 失败：'+e); }
+}
+async function listenSet(body){
+  const r=await api('/console/agent',{path:'/listen',body:body||{}});
+  log('/listen '+JSON.stringify(body||{})+' → '+JSON.stringify(r));
+  await listenRead();
+}
+async function thinkRun(){
+  const goal=(($('tkGoal')||{}).value||'').trim();
+  if(!goal){ log('✗ 先填一个 goal'); return; }
+  const rounds=+((($('tkRounds')||{}).value)||3);
+  if($('tkBox')) $('tkBox').textContent='思考中…（最多 6 轮，每轮一次大模型往返；失败不抛，会回 ok:false + trace）';
+  const t0=Date.now();
+  const r=await api('/console/agent',{path:'/think',body:{goal:goal,rounds:rounds}});
+  if($('tkBox')) $('tkBox').textContent=JSON.stringify(r,null,1);
+  log('/think → '+(Date.now()-t0)+'ms · ok='+((r&&r.ok)));
+}
+async function thinkSelfTest(){
+  const r=await api('/console/agent?path=/thinkselftest');
+  const rep=(r&&r.report)?r.report:JSON.stringify(r);
+  if($('tkBox')) $('tkBox').textContent=rep;
+  log('多轮思考自检 → '+rep);
+}
+// ===== ⑯ 简易 workflow（v203）=====
+// ★ 全部离线：能力索引是**自省**的（动作表/表情表现场读）+ 说明书打包在 assets 里；
+//   编排的每一步都只调本机能力，中途不碰任何网络（唯一需要网络的只有 AI 对话那一环）。
+async function wfStatus(){
+  try{
+    const r=await api('/console/agent?path=/workflow');
+    const o=(r&&r.last)?r.last:(r||{});
+    if($('wfAllowed')&&r&&r.allowed) $('wfAllowed').textContent=r.allowed;
+    if($('wfLogPath')&&r&&r.dir) $('wfLogPath').textContent='/sdcard/ledi_workflow_run.log';
+    if($('wfBox')) $('wfBox').textContent=(o.trace&&o.trace.length)?o.trace:JSON.stringify(r,null,1);
+    if(r&&r.busy) log('⚠ 已有一条 workflow 在跑');
+  }catch(e){ log('✗ 读 /workflow 失败：'+e); }
+  await wfList();
+}
+async function wfList(){
+  try{
+    const r=await api('/console/agent?path=/workflow&list=1');
+    const sel=$('wfList'); if(!sel) return;
+    const items=(r&&r.items)||[];
+    sel.innerHTML='<option value="">（未选择）</option>';
+    items.forEach(it=>{
+      const o=document.createElement('option');
+      o.value=it.name;
+      o.textContent=it.name+'（'+it.steps+' 步'+(it.valid?'':' ⚠预检不过')+'）';
+      sel.appendChild(o);
+    });
+  }catch(e){}
+}
+async function wfSet(body){
+  const r=await api('/console/agent',{path:'/listen',body:body||{}});
+  log('/listen '+JSON.stringify(body||{})+' → '+JSON.stringify(r));
+  await listenRead();
+}
+async function wfLoad(){
+  const n=($('wfList')||{}).value; if(!n) return;
+  const r=await api('/console/agent?path=/workflow&read='+encodeURIComponent(n));
+  if(r&&r.ok&&$('wfText')){ $('wfText').value=r.text; if($('wfName')) $('wfName').value=n; }
+  else log('✗ 读流程失败：'+JSON.stringify(r));
+}
+async function wfDel(){
+  const n=($('wfList')||{}).value;
+  if(!n){ log('✗ 先在下拉里选一份流程'); return; }
+  if(!confirm('确定删除流程「'+n+'」？这个动作不可撤销。')) return;
+  const r=await api('/console/agent',{path:'/workflow',body:{del:n}});
+  log('删除 '+n+' → '+JSON.stringify(r));
+  await wfList();
+}
+async function wfSave(){
+  const n=(($('wfName')||{}).value||'').trim();
+  const t=(($('wfText')||{}).value||'');
+  if(!n){ log('✗ 先填一个流程名'); return; }
+  if(!t.trim()){ log('✗ 步骤是空的'); return; }
+  const r=await api('/console/agent',{path:'/workflow',body:{save:n,text:t}});
+  log('保存 → '+JSON.stringify(r));
+  await wfList();
+}
+async function wfRun(async){
+  const t=(($('wfText')||{}).value||'');
+  if(!t.trim()){ log('✗ 步骤是空的'); return; }
+  if($('wfBox')) $('wfBox').textContent=async?'已交给后台执行，稍后点「刷新」看流水…':'执行中…（某步失败即中止）';
+  const t0=Date.now();
+  const r=await api('/console/agent',{path:'/workflow',body:{text:t,async:!!async}});
+  if($('wfBox')) $('wfBox').textContent=JSON.stringify(r,null,1);
+  log('/workflow async='+!!async+' → '+(Date.now()-t0)+'ms · ok='+((r&&r.ok)));
+  if(!async) try{ const l=await api('/console/agent?path=/workflow');
+    if($('wfBox')&&l&&l.last&&l.last.trace) $('wfBox').textContent=l.last.trace; }catch(e){}
+}
+async function wfRollback(){
+  const v=+prompt('回滚到多少音量？（0..15，留空=不动音量）','');
+  const f=prompt('回滚到什么表情？（留空=不动表情，例如 happy1）','');
+  const body={rollback:true};
+  if(!isNaN(v)&&v>=0&&v<=15) body.volume=v;
+  if(f) body.face=f;
+  const r=await api('/console/agent',{path:'/workflow',body:body});
+  log('回滚 → '+JSON.stringify(r));
+  if($('wfBox')) $('wfBox').textContent=JSON.stringify(r,null,1);
+}
+async function wfSelfTest(){
+  const r=await api('/console/agent?path=/workflowselftest');
+  const rep=(r&&r.report)?r.report:JSON.stringify(r);
+  if($('wfBox')) $('wfBox').textContent=rep;
+  log('workflow 自检 → '+rep);
+}
+async function wfCaps(){
+  const q=(($('wfQ')||{}).value||'').trim();
+  if(!q){ log('✗ 先填检索词'); return; }
+  const r=await api('/console/agent?path=/caps&q='+encodeURIComponent(q));
+  if($('wfCapsBox')) $('wfCapsBox').textContent=JSON.stringify(r,null,1);
+  if($('wfCapsHint')&&r&&r.index) $('wfCapsHint').textContent='（索引 '+(r.index.total||'?')+' 条，说明书 '+(r.index.docs_loaded?'已加载':'缺席')+'）';
+  log('能力检索「'+q+'」→ 命中 '+(r&&r.hits?r.hits.length:0)+' 条');
+}
+// ===== 一键开关 =====
+let SW={ai:true,auto_react:false,native:null};
+function paintSw(){
+  $('swAi').textContent='AI 接管：'+(SW.ai?'开':'关');
+  $('swAi').className=SW.ai?'on':'';
+  $('swNative').textContent='机器人自带反应：'+(SW.native===false?'关':'开');
+  $('swNative').className=SW.native===false?'':'on';
+  $('swAuto').textContent='AI 自动反应：'+(SW.auto_react?'开':'关');
+  $('swAuto').className=SW.auto_react?'on':'';
+}
+async function sw(which){
+  const body={};
+  if(which==='ai') body.ai=!SW.ai;
+  else if(which==='auto_react') body.auto_react=!SW.auto_react;
+  else if(which==='native') body.native=!(SW.native!==false);
+  const r=await api('/console/switch',body);
+  log('开关 '+which+' → '+JSON.stringify(r.switches||r));
+  SW.ai = (r.switches&&'ai' in r.switches)?r.switches.ai:SW.ai;
+  SW.auto_react = (r.switches&&'auto_react' in r.switches)?r.switches.auto_react:SW.auto_react;
+  if(which==='native') SW.native = !(SW.native!==false);
+  paintSw();
+}
+async function reactNow(){
+  log('让 AI 反应一下…');
+  const r=await api('/console/react',{});
+  log('反应 → '+JSON.stringify(r.reaction||r));
+}
+// ===== 对话日志 =====
+// 机器人的三条对话通路（网关 / 直连 / 原厂框架）+ 心跳，全都汇总到这一个列表。
+// 为什么要标"通路"：同一句话在"直连"和"网关"上的答法可能完全不同，
+// 排查"为什么它答得不对"时，第一步就是确认它到底走的哪条路。
+const VIA_NAME={gateway:'网关',robot:'机器人',heartbeat:'心跳'};
+function viaLabel(v){
+  if(!v) return '?';
+  if(v.indexOf('native:')===0) return '原厂'+v.slice(7)+'';
+  return VIA_NAME[v]||v;
+}
+function hm(t){
+  const d=new Date((t||0)*1000);
+  const p=n=>('0'+n).slice(-2);
+  return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+async function loadDlg(manual){
+  try{
+    const n=parseInt(($('dlgN')&&$('dlgN').value)||'50',10);
+    const r=await api('/console/dialog?n='+n, null, 'GET');
+    const items=(r&&r.items)||[];
+    if($('dlgState')&&r&&r.state){
+      $('dlgState').textContent='累计 '+r.state.count+' 条 · 内存留 '+r.state.kept+' 条';
+      if(r.state.log&&$('dlgPath')) $('dlgPath').textContent=r.state.log;
+    }
+    if(!$('dlgBox')) return;
+    if(!items.length){ $('dlgBox').textContent='还没有对话。让机器人说句话，或点「立刻来一次」触发心跳。'; return; }
+    const L=[];
+    for(let i=items.length-1;i>=0;i--){          // 新的在上面
+      const it=items[i];
+      const head=hm(it.t)+' ['+viaLabel(it.via)+']'
+        +(it.sector?(' '+it.sector):'')
+        +(it.face?(' 表情='+it.face):'')
+        +(it.motion?(' 动作='+it.motion):'')
+        +(it.engine?(' 引擎='+it.engine):'');
+      L.push(head);
+      L.push('  听到：'+(it.ask||'（无，它主动说的）'));
+      L.push('  回答：'+(it.reply||'（空）'));
+      L.push('');
+    }
+    $('dlgBox').textContent=L.join(NL);
+    if(manual) log('对话日志已刷新（'+items.length+' 条）');
+  }catch(e){ log('✗ 对话日志：'+((e&&e.message)||e)); }
+}
+async function dlgClear(){
+  await api('/console/dialog',{action:'clear'});
+  log('对话日志已清屏（磁盘 jsonl 保留）');
+  loadDlg();
+}
+function dlgAuto(){
+  const on=$('dlgAutoOn').checked;
+  log('对话日志自动刷新 → '+(on?'开（5 秒）':'关'));
+}
+// ===== 方位 / 朝向 =====
+// 双麦探针约 7 秒（机器人本地分别录 5 段音），所以按钮点下去要先把话说明白，
+// 不然用户以为卡死了又点一次，机器人会同时开两次麦克风。
+async function doaAct(kind, side){
+  const box=$('doaBox');
+  try{
+    if(kind==='rot'){
+      const r=await api('/console/rotation',{apply:true});
+      paintDoa(null,r);
+      log('屏幕朝向 → '+JSON.stringify(r));
+      return;
+    }
+    if(kind==='probe'){
+      box.textContent='正在让机器人分别录 5 段音做互相关，约 7 秒，请稍候…';
+      log('双麦探针：开始（约 7 秒）');
+      const r=await api('/console/doa',{probe:true,ms:1200});
+      const L=[];
+      L.push('any_real = '+r.any_real);
+      (r.results||[]).forEach(function(x){
+        L.push(x.source+'  ch='+x.ch_count
+          +'  差异采样='+x.diff_count+'/'+x.diff_max
+          +'  rho@0='+x.rho0);
+        L.push('    '+x.verdict);
+      });
+      box.textContent=L.join(NL);
+      log('双麦探针：'+(r.any_real?'能做声源定位':'不能做声源定位（见下方结论）'));
+      return;
+    }
+    if(kind==='touch'){
+      const r=await api('/console/doa',{touch:(side==='l'?'lface':'rface')});
+      paintDoa(r,null);
+      box.textContent='模拟摸'+(side==='l'?'左':'右')+'脸 -> '+JSON.stringify(r);
+      log('方位自测：'+(side==='l'?'左脸':'右脸')+' -> 判定 '+r.sector+'（来源 '+r.from+'）');
+      return;
+    }
+    if(kind==='look'){
+      const r=await api('/console/doa',{look:true});
+      box.textContent='看用户在哪 -> '+JSON.stringify(r);
+      log('方位：'+(r.sector||'未知')+'，动作 '+(r.motion||'（正前，不用转）'));
+      return;
+    }
+  }catch(e){
+    box.textContent='✗ '+((e&&e.message)||e);
+    log('✗ 方位/朝向：'+((e&&e.message)||e));
+  }
+}
+function paintDoa(D,R){
+  if(!$('doaState')) return;
+  const b=[];
+  if(D){
+    b.push('用户在'+(D.sector||'未知'));
+    if(D.from) b.push('来源 '+D.from);
+    if(D.voice_ms>=0) b.push(Math.round(D.voice_ms/1000)+'s 前');
+  }
+  if(R){
+    b.push('屏幕朝向 '+(R.rotation||0)*90+'°');
+    b.push(R.ok?'已锁横向':'★ 没锁住');
+  }
+  $('doaState').textContent=b.join(' · ');
+}
+// ===== 机器人状态 =====
+function fmtState(s){
+  if(!s||!s.posture) return '未连接机器人或未读到传感器（确认机器人装了新版 LediAgent）';
+  const t=s.touch||{},b=s.battery||{},imu=s.imu||{},m=s.motor||{},p=s.posture||{};
+  const L=[];
+  L.push('姿态        : '+p.name+(p.ago&&p.ago!=='-'?'  ('+p.ago+')':''));
+  L.push('电量        : '+(b.pct>=0?b.pct+'%':'?')+(b.charging?' 充电中':'')+(b.low?'  ⚠低电量':''));
+  L.push('最近触摸    : '+(t.last?({head:'头顶',lface:'左脸',rface:'右脸'}[t.last]||t.last)+' '+t.action:'—')
+    +(t.head_now?'   此刻头顶被按住':'')+'   累计 '+t.count+' 次');
+  L.push('按键        : '+(s.button&&s.button.last?s.button.last+'  ('+s.button.ago+')':'—'));
+  L.push('陀螺仪      : '+(imu.has_gyro?('x='+imu.gyro[0]+' y='+imu.gyro[1]+' z='+imu.gyro[2]):'无硬件')
+    +(imu.has_accel?('  倾斜 pitch='+imu.pitch+'° roll='+imu.roll+'°'):''));
+  L.push('电机        : 引擎'+(m.engine?'可用':'未就绪')+'  '+(m.exclusive?'独占中':'共享')
+    +'   最近动作='+(m.last_action||'—')+(m.last_action_ago&&m.last_action_ago!=='-'?' ('+m.last_action_ago+')':''));
+  if(m.last_pose) L.push('最近姿态    : '+m.last_pose);
+  L.push('校准        : '+(s.cali&&s.cali.state?s.cali.state+'  ('+s.cali.ago+')':'—'));
+  return L.join(NL);
+}
+async function refreshState(){
+  // ★ 心跳状态要在"有没有配机器人地址"的前面画：它和地址无关，而那个
+  //   倒计时是唯一能看出随机心跳还活着的字段，不该被一个 early return 吞掉。
+  const r=await api('/console/state');
+  if(r&&r.heartbeat) paintHB(r.heartbeat);
+  // 朝向状态单独问一次（机器人本地调用，很快）——它是"脸躺着"这类
+  // 故障的唯一线上证据，不该只藏在按钮后面等人去点。
+  try{ const rt=await api('/console/rotation',{}); paintDoa(null,rt); }catch(e){}
+  if(!CFG||!CFG.agent||!CFG.agent.addr){$('stateBox').textContent='未配置机器人地址';return}
+  $('stateBox').textContent=fmtState(r.sensors)+(r.summary?NL+NL+'给 AI 的状态摘要：'+r.summary:'');
+  SW.ai=r.switches&&typeof r.switches.ai==='boolean'?r.switches.ai:SW.ai;
+  SW.native=r.switches?r.switches.native:SW.native;
+  SW.auto_react=r.auto_react?!!r.auto_react.on:SW.auto_react;
+  paintSw();
+  $('evBox').textContent=(r.events&&r.events.length)?('最近事件：'+NL+r.events.join(NL)):'最近事件：—';
+  if(r.last_user_text&&!$('emQ').value) $('emQ').value=r.last_user_text;
+}
+// ===== 应急聊天 =====
+async function copyQ(){
+  const r=await api('/console/lastuser');
+  $('emQ').value=r.text||'';
+  try{await navigator.clipboard.writeText(r.text||'');log('已复制机器人听到的话：'+(r.text||'(空)'));}
+  catch(e){log('已填入输入框（浏览器未允许自动复制，手动复制即可）');}
+}
+async function pasteClip(){
+  try{const t=await navigator.clipboard.readText();$('emText').value=t;log('已从剪贴板读入 '+t.length+' 字');}
+  catch(e){log('浏览器不允许直接读剪贴板，请手动 Ctrl+V 粘贴到文本框');}
+}
+async function emergency(){
+  const t=$('emText').value.trim();
+  if(!t){log('✗ 先把 DeepSeek 的回复粘贴进来');return}
+  const r=await api('/console/emergency',{text:t});
+  log('应急发送 → '+JSON.stringify(r.sent||r));
+  if(r.result) log('机器人返回 → '+JSON.stringify(r.result));
+}
+// ===== ⑭ 屏幕投屏（v195）=====
+// 为什么是 WebCodecs 而不是 <video>：机器人吐的是**裸 H.264 Annex-B**
+// （screenrecord --output-format=h264 -），没有 MP4/TS 封装，<video> 播不了；
+// 而在机器人上用 Java 写一个 MP4 封装器，代价远大于收益。
+// WebCodecs 的 VideoDecoder 正好吃 annexb（avc:{format:'annexb'}），几十行就够。
+const CAST={dec:null,ctrl:null,run:false,w:800,h:480,codec:'',au:[],ts:0,
+ nals:0,aus:0,painted:0,ctx2d:null,timer:0,err:'',errLogged:''};
+function castLog(s){const l=$('castLog');if(l)l.textContent='['+new Date().toLocaleTimeString()+'] '+s+NL+l.textContent;}
+function castHex2(n){return ('0'+n.toString(16)).slice(-2).toUpperCase();}
+function castFindSc(b,from){for(let i=from||0;i+2<b.length;i++){if(b[i]===0&&b[i+1]===0&&b[i+2]===1)return i;}return -1;}
+function castCat(a,b){if(!a.length)return b;const r=new Uint8Array(a.length+b.length);r.set(a,0);r.set(b,a.length);return r;}
+function castSupported(){return typeof VideoDecoder!=='undefined'&&typeof EncodedVideoChunk!=='undefined';}
+function castMsg(t){const m=$('castMsg');if(!m)return;if(t===null){m.style.display='none';}else{m.style.display='flex';m.innerHTML=t;}}
+
+function castMkDec(codec){
+  if(CAST.dec){try{CAST.dec.close();}catch(e){}}
+  const cv=$('castCv');
+  if(!CAST.ctx2d)CAST.ctx2d=cv.getContext('2d');
+  CAST.codec=codec;CAST.au=[];CAST.ts=0;
+  const dec=new VideoDecoder({
+    output:function(f){
+      try{
+        if(cv.width!==f.displayWidth||cv.height!==f.displayHeight){cv.width=f.displayWidth;cv.height=f.displayHeight;}
+        CAST.ctx2d.drawImage(f,0,0);CAST.painted++;
+      }catch(e){CAST.err=String(e);}
+      try{f.close();}catch(e){}
+    },
+    error:function(e){CAST.err=String((e&&e.message)||e);castLog('✗ 解码器报错：'+CAST.err);}
+  });
+  dec.configure({codec:codec,avc:{format:'annexb'},optimizeForLatency:true});
+  CAST.dec=dec;
+  castLog('解码器就绪 codec='+codec);
+}
+function castFeed(){
+  const d=CAST.dec;
+  if(!d||d.state!=='configured'||!CAST.au.length)return;
+  let n=0;for(const x of CAST.au)n+=x.length;
+  const b=new Uint8Array(n);let o=0;let key=false;
+  for(const x of CAST.au){b.set(x,o);o+=x.length;if((x[3]&0x1f)===5)key=true;}
+  CAST.au=[];CAST.ts+=33333;
+  try{d.decode(new EncodedVideoChunk({type:key?'key':'delta',timestamp:CAST.ts,data:b}));CAST.aus++;}
+  catch(e){CAST.err=String(e);castLog('✗ 送解码失败：'+e);}
+}
+function castNal(nal){
+  if(nal.length<4)return;
+  const t=nal[3]&0x1f;              // [0..2] 是起始码 00 00 01，NAL header 在 [3]
+  CAST.nals++;
+  if(t===7){                        // SPS：从它推出 codec 串（profile/constraint/level）
+    const cs='avc1.'+castHex2(nal[4])+castHex2(nal[5])+castHex2(nal[6]);
+    if(!CAST.dec||CAST.codec!==cs)castMkDec(cs);
+  }
+  // 一个 access unit = 到下一条 VCL(1/5) 之前的全部 NAL。
+  // ★ 必须按"帧"喂 decoder，不能一个 NAL 喂一次：Chrome 会容忍，但那是碰运气，
+  //   而画面花掉的时候人只会以为"投屏画质差"，看不出是喂错了。
+  if((t===1||t===5)&&CAST.au.length)castFeed();
+  CAST.au.push(nal.slice());
+}
+async function castRead(body){
+  const rd=body.getReader();
+  let buf=new Uint8Array(0);
+  for(;;){
+    let r;
+    try{r=await rd.read();}catch(e){CAST.err=String(e);break;}
+    if(r.done)break;
+    buf=castCat(buf,r.value);
+    for(;;){
+      const i0=castFindSc(buf,0);
+      if(i0<0){buf=new Uint8Array(0);break;}          // 一个起始码都没有：垃圾，丢掉
+      const i1=castFindSc(buf,i0+3);
+      if(i1<0){if(i0>0)buf=buf.slice(i0);break;}      // 这个 NAL 还没收完，留着
+      castNal(buf.subarray(i0,i1));
+      buf=buf.slice(i1);
+    }
+    if(buf.length>8*1024*1024)buf=new Uint8Array(0);   // 防御：别让 buffer 无限涨
+  }
+  castFeed();                                          // 把最后攒着的一帧发出去
+}
+async function castLoop(){
+  while(CAST.run){
+    const ctrl=new AbortController();CAST.ctrl=ctrl;
+    try{
+      castLog('连接 /mirror.h264 …');
+      const res=await fetch('/mirror.h264?t='+Date.now(),{signal:ctrl.signal,cache:'no-store'});
+      if(!res.ok){
+        let t='';try{t=await res.text();}catch(e){}
+        castLog('✗ 打不开投屏流：HTTP '+res.status+' '+t.slice(0,300));
+        CAST.run=false;break;
+      }
+      const w=(+res.headers.get('X-Ledi-Width'))||0,h=(+res.headers.get('X-Ledi-Height'))||0;
+      if(w>0&&h>0&&(w!==CAST.w||h!==CAST.h)){
+        CAST.w=w;CAST.h=h;const cv=$('castCv');cv.width=w;cv.height=h;
+        CAST.ctx2d=null;CAST.dec=null;castLog('画面尺寸 '+w+'x'+h);
+      }
+      castMsg(null);
+      castLog('流已连上');
+      await castRead(res.body);
+      if(CAST.run)castLog('流结束（screenrecord 到 170s 会自然收尾），稍后自动重连');
+    }catch(e){
+      if(!CAST.run)break;
+      castLog('流中断：'+((e&&e.name)||e)+'（自动重连）');
+    }
+    CAST.ctrl=null;
+    if(CAST.dec){try{CAST.dec.close();}catch(e){}CAST.dec=null;}
+    if(CAST.run){castMsg('连接断了，正在自动重连…');await new Promise(function(r){setTimeout(r,700);});}
+  }
+}
+async function castToggle(){if(CAST.run)castStop();else await castStart();}
+async function castStart(){
+  if(!castSupported()){
+    castMsg('这个浏览器<b>没有 WebCodecs</b>（要 Chrome/Edge 94+ 或 Safari 16.4+），播不了 H.264 投屏。'+NL+'可以点「📷 拍一张」看静态截图；或在电脑上用 scrcpy 投屏。');
+    castLog('✗ 浏览器不支持 WebCodecs，没有开始投屏');
+    return;
+  }
+  if(CAST.run)return;
+  CAST.run=true;CAST.err='';CAST.errLogged='';
+  $('castBtn').textContent='■ 停止投屏';
+  castMsg('正在连接机器人屏幕…');
+  const r=await api('/console/mirror',{on:true});
+  castLog('请求开投屏 → '+JSON.stringify((r&&r.cast)||r));
+  castLoop();
+  if(!CAST.timer)CAST.timer=setInterval(castStat,1000);
+  castStat();
+}
+function castStop(){
+  CAST.run=false;
+  if(CAST.ctrl){try{CAST.ctrl.abort();}catch(e){}CAST.ctrl=null;}
+  if(CAST.dec){try{CAST.dec.close();}catch(e){}CAST.dec=null;}
+  if(CAST.timer){clearInterval(CAST.timer);CAST.timer=0;}
+  $('castBtn').textContent='▶ 开始投屏';
+  api('/console/mirror',{on:false});
+  castMsg('已停止。再点「开始投屏」即可继续。');
+  castLog('已停止投屏');
+}
+async function castStat(){
+  try{
+    const s=await api('/mirror/stat');
+    const c=(s&&s.cast)||{};
+    const el=$('castInfo');
+    if(el)el.textContent=c.running
+      ?('投屏中 '+c.w+'x'+c.h+' · '+c.fps+' fps · '+Math.round(c.kbps/8)+' KB/s · 已 '+c.frames+' 帧 · 观看 '+c.viewers+' · 画 '+CAST.painted)
+      :('未投屏'+(c.last_error?(' · '+c.last_error):''));
+    // 机器人侧的错误只报一次，别每秒重复刷屏（刷屏会让人忽略第一条）
+    if(c.last_error&&c.last_error!==CAST.errLogged){CAST.errLogged=c.last_error;castLog('⚠ 机器人侧：'+c.last_error);}
+    if(c.running&&c.frames===0&&c.uptime_s>6)castLog('⚠ 编码器跑着但一帧没出，可能是 --size 不被编解码器接受');
+  }catch(e){}
+}
+async function castApplyCfg(){
+  const w=+(($('castSize')||{}).value||'800');
+  const h=Math.round(w*0.6);          // 800x480 / 640x384 / 480x288 都是同一比例
+  const br=+(($('castBr')||{}).value||2000000);
+  const r=await api('/console/mirror',{w:w,h:h,bitrate:br});
+  castLog('改投屏参数 '+w+'x'+h+' / '+br+'bps → '+JSON.stringify((r&&r.cast)||r));
+}
+async function castKey(name){
+  const r=await api('/console/key',{name:name});
+  castLog('按键 '+name+' → ok='+((r&&r.ok))+(r&&r.error?(' / '+r.error):''));
+}
+async function castSendText(){
+  const t=$('castTextIn').value;
+  if(!t){castLog('✗ 先填要打的字');return}
+  const r=await api('/console/text',{text:t});
+  castLog('打字 "'+t+'" → ok='+((r&&r.ok))+(r&&r.error?(' / '+r.error):''));
+}
+async function castShot(){
+  castLog('拍一张 …（这台机器 screencap 约 1 秒）');
+  try{
+    const res=await fetch('/mirror.jpg?t='+Date.now(),{cache:'no-store'});
+    if(!res.ok){castLog('✗ 截图失败 HTTP '+res.status+' '+(await res.text()).slice(0,200));return;}
+    const blob=await res.blob();
+    const bmp=await createImageBitmap(blob);
+    const cv=$('castCv');
+    if(CAST.run){castLog('已取到截图，但投屏在跑，画面会被视频盖回去');}
+    else{
+      if(bmp.width&&bmp.height){cv.width=bmp.width;cv.height=bmp.height;CAST.w=bmp.width;CAST.h=bmp.height;}
+      if(!CAST.ctx2d)CAST.ctx2d=cv.getContext('2d');
+      CAST.ctx2d.drawImage(bmp,0,0);castMsg(null);
+    }
+    if(bmp.close)try{bmp.close();}catch(e){}
+    castLog('截图 '+cv.width+'x'+cv.height+' / '+blob.size+' 字节');
+  }catch(e){castLog('✗ 截图出错：'+e);}
+}
+function castXY(ev){
+  const cv=$('castCv'),r=cv.getBoundingClientRect();
+  let x=Math.round((ev.clientX-r.left)/r.width*CAST.w);
+  let y=Math.round((ev.clientY-r.top)/r.height*CAST.h);
+  return [Math.max(0,Math.min(CAST.w-1,x)),Math.max(0,Math.min(CAST.h-1,y))];
+}
+let CAST_DRAG=null;
+function castInit(){
+  const cv=$('castCv');
+  if(!cv||cv.dataset.wired)return;
+  cv.dataset.wired='1';
+  cv.addEventListener('pointerdown',function(ev){
+    ev.preventDefault();
+    const p=castXY(ev);
+    CAST_DRAG={x:p[0],y:p[1],cx:ev.clientX,cy:ev.clientY,t:Date.now()};
+  });
+  cv.addEventListener('pointerup',async function(ev){
+    const d=CAST_DRAG;if(!d)return;CAST_DRAG=null;
+    const moved=Math.abs(ev.clientX-d.cx)+Math.abs(ev.clientY-d.cy);
+    const heldMs=Date.now()-d.t;
+    if(moved<12){
+      // ★ 长按 vs 轻点：真按住不放（≥500ms）就发长按 —— 长按是 Android 上和"点"
+      //   并列的一等手势（长按菜单/长按删除）。屏幕保的兜底出口也是"按住 5 秒"
+      //   （SleepScreen.HOLD_EXIT_MS），所以这个动作能真的把睡着的机器人按住叫醒。
+      if(heldMs>=500){
+        const ms=Math.max(500,Math.min(10000,heldMs));
+        const r=await api('/console/hold',{x:d.x,y:d.y,ms:ms});
+        castLog('长按 ('+d.x+','+d.y+') '+ms+'ms → ok='+((r&&r.ok))+(r&&r.error?(' / '+r.error):''));
+      }else{
+        const r=await api('/console/tap',{x:d.x,y:d.y});
+        castLog('点 ('+d.x+','+d.y+') → ok='+((r&&r.ok))+(r&&r.error?(' / '+r.error):''));
+      }
+    }else{
+      const p=castXY(ev);
+      const ms=Math.max(80,Math.min(3000,heldMs));
+      const r=await api('/console/swipe',{x1:d.x,y1:d.y,x2:p[0],y2:p[1],ms:ms});
+      castLog('划 ('+d.x+','+d.y+')→('+p[0]+','+p[1]+') '+ms+'ms → ok='+((r&&r.ok))+(r&&r.error?(' / '+r.error):''));
+    }
+  });
+  cv.addEventListener('pointercancel',function(){CAST_DRAG=null;});
+}
+// ===== ⑰ 性格 · 情绪 · 记忆（v214）=====
+// ★ 这一面板只走**已有的两条 HTTP 路**（GET /tone·/emotion·/memory 与
+//   POST /tone·/emotion·/memory）—— 界面 / 语音工具 / 脚本三处同源，绝不各写一份。
+function chLog(s){const b=$('chBox');if(b)b.textContent='['+new Date().toLocaleTimeString()+'] '+s+'\n'+b.textContent;}
+async function chRead(){
+  try{
+    const raw=await api('/console/agent?path=/tone');
+    const T=(raw&&raw.tone)?raw.tone:(raw||{});
+    const sel=$('chStyle');
+    if(sel){
+      const cur=T.style||T.default_style||'warm';
+      sel.innerHTML='';
+      [['warm','温柔体贴（默认）'],['direct','冷静干脆'],['buddy','老友／损友']]
+        .forEach(function(p){const o=document.createElement('option');o.value=p[0];o.textContent=p[1];sel.appendChild(o);});
+      (T.customs||[]).forEach(function(c){const o=document.createElement('option');
+        o.value='custom:'+c.name;o.textContent='自定义：'+c.name;sel.appendChild(o);});
+      let has=false;for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===cur)has=true;}
+      if(!has){const o=document.createElement('option');o.value=cur;o.textContent=cur;sel.appendChild(o);}
+      sel.value=cur;
+    }
+    if($('chStyleNow'))$('chStyleNow').textContent='当前='+(T.style_name||T.style||'?')+' · 语气='+(T.level||'?');
+    chLog('性格 → '+(T.style_name||T.style||'?')+'（自定义 '+(T.customs||[]).length+' 条）');
+  }catch(e){chLog('✗ 读性格失败：'+e);}
+  try{
+    const raw=await api('/console/agent?path=/emotion');
+    const E=(raw&&raw.emotion)?raw.emotion:{};
+    if($('chEmo'))$('chEmo').textContent='脸='+(E.name||'?')+' · 心情='+(E.mood_label||'?')
+      +'('+E.mood+') · 愉悦='+E.valence+'/激活='+E.arousal;
+    chLog('情绪 → 脸='+E.name+' 心情='+E.mood_label+' why='+(E.why||''));
+  }catch(e){chLog('✗ 读情绪失败：'+e);}
+  await chMemRead();
+}
+async function chApplyStyle(){
+  const sel=$('chStyle');if(!sel)return;
+  const r=await api('/console/agent',{path:'/tone',body:{style:sel.value}});
+  chLog('切换性格 '+sel.value+' → '+JSON.stringify(r&&(r.tone||r)));
+  await chRead();
+}
+async function chSaveCustom(){
+  const n=($('chName')||{}).value||'';const c=($('chClause')||{}).value||'';
+  if(!n.trim()||!c.trim()){chLog('✗ 名字和"那句话"都要填');return;}
+  const r=await api('/console/agent',{path:'/tone',body:{custom_name:n.trim(),custom_clause:c.trim()}});
+  chLog('保存自定义性格 → '+JSON.stringify(r));
+  if($('chName'))$('chName').value='';if($('chClause'))$('chClause').value='';
+  await chRead();
+}
+async function chDelCustom(){
+  const sel=$('chStyle');if(!sel)return;
+  const cur=sel.value;if(cur.indexOf('custom:')!==0){chLog('✗ 请先在上面选中一条"自定义"性格再删');return;}
+  const r=await api('/console/agent',{path:'/tone',body:{delcustom:cur.slice(7)}});
+  chLog('删除 '+cur+' → '+JSON.stringify(r));
+  await chRead();
+}
+async function chEmoReset(){
+  const r=await api('/console/agent',{path:'/emotion',body:{reset:true}});
+  chLog('情绪回基线 → '+JSON.stringify(r&&(r.emotion||r)));
+  await chRead();
+}
+async function chMemRead(){
+  try{
+    const raw=await api('/console/agent?path=/memory');
+    const M=(raw&&raw.memory)?raw.memory:{};
+    if($('chMem'))$('chMem').textContent='认识第'+(M.days||0)+'天 · 聊过'+(M.talks||0)
+      +'次 · 记着'+(M.count||0)+'条';
+    chLog('记忆 → '+JSON.stringify(M.brief||''));
+  }catch(e){chLog('✗ 读记忆失败：'+e);}
+}
+async function chRemember(){
+  const t=($('chFact')||{}).value||'';if(!t.trim()){chLog('✗ 先写一句要它记住的话');return;}
+  const r=await api('/console/agent',{path:'/memory',body:{remember:t.trim()}});
+  chLog('记住 → '+JSON.stringify(r));
+  if($('chFact'))$('chFact').value='';
+  await chMemRead();
+}
+async function chForget(scope){
+  const r=await api('/console/agent',{path:'/memory',body:{forget:scope}});
+  chLog('忘记['+scope+'] → '+JSON.stringify(r));
+  await chRead();
+}
+loadCfg().then(()=>{refreshState();loadDlg();castInit();castStat();avRead();
+  try{ batRead(); }catch(e){}
+  // ★ 常听/思考的开关状态**只在进页面时读一次**，不跟着 5s 轮询 —— 轮询会把用户
+  //   正在拨的那个 checkbox 顶回去（看到的和拨的不一样，最难查）。
+  try{ listenRead(); }catch(e){}
+  // ★ workflow 面板同理：开关只读一次；面板刷一次流水。
+  try{ wfStatus(); }catch(e){}
+  // ★ v214 性格/情绪/记忆面板：只读一次（开关状态不跟 5s 轮询，避免把用户正在拨的控件顶回去）。
+  try{ chRead(); }catch(e){}
+  if(!castSupported())castLog('⚠ 这个浏览器没有 WebCodecs，投屏只能用「📷 拍一张」看静态图');
+  setInterval(()=>{
+  if($('evAuto')&&$('evAuto').checked) refreshState();
+  if($('dlgAutoOn')&&$('dlgAutoOn').checked) loadDlg();
+  try{ batRead(); }catch(e){}},5000);});
+</script>
+</body></html>

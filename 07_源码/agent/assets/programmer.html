@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>乐迪 · 图形化动作编程</title>
+<style>
+:root{
+  /* 乐迪统一配色：与原厂机器人客户端同族（颜色来自 ui_kit 的像素统计）
+     这一份 :root 是「三端同一套」的编程器内核，机器人 WebView 与电脑端
+     /editor/programmer.html 共用它 —— 所以改这里三端一起变。 */
+  --bg:#16224a; --panel:#24376b; --panel2:#2c4180; --line:#3d569b;
+  --fg:#eef3ff; --muted:#a8bde8; --accent:#f8e808; --accent2:#88c808;
+  --warn:#ffb454; --danger:#ff6b6b; --track:#1b2a55;
+  --ink:#22315a;   /* 黄/绿底上的深字，保证对比度 */
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--fg);
+  background-image:radial-gradient(circle at 88% 6%,rgba(248,232,8,.10),transparent 42%),
+                   radial-gradient(circle at 6% 92%,rgba(88,140,220,.18),transparent 46%);
+  font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+header{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-wrap:wrap;}
+header .title{font-size:16px;font-weight:700;white-space:nowrap;}
+header .conn{font-size:12px;color:var(--muted);flex:1;min-width:140px;}
+.btn{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;
+  padding:8px 12px;cursor:pointer;font-size:13px;white-space:nowrap;}
+.btn:hover{filter:brightness(1.12);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--ink);font-weight:700;}
+.btn.green{background:var(--accent2);border-color:var(--accent2);color:var(--ink);font-weight:700;}
+.btn.warn{background:var(--warn);border-color:var(--warn);color:#1a1206;}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff;}
+.btn.sm{padding:5px 8px;font-size:12px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+input[type=text],input[type=number],select{background:var(--track);border:1px solid var(--line);
+  color:var(--fg);border-radius:6px;padding:7px 9px;font-size:13px;}
+input[type=text]:focus{outline:none;border-color:var(--accent);}
+main{flex:1;display:flex;overflow:hidden;}
+.col{display:flex;flex-direction:column;min-width:0;}
+/* 左：资源面板 */
+#library{width:220px;border-right:1px solid var(--line);background:var(--panel);overflow-y:auto;}
+#library h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  margin:12px 10px 6px;}
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 10px 10px;}
+.lib-item{background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+  padding:7px 4px;text-align:center;font-size:11px;cursor:pointer;word-break:break-all;}
+.lib-item:hover{border-color:var(--accent);}
+.lib-item.active{border-color:var(--accent2);background:#2a3f16;}
+/* 中：时间轴 + 关节 */
+#stage{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#timeline{height:180px;background:var(--panel);border-bottom:1px solid var(--line);
+  overflow-x:auto;overflow-y:hidden;position:relative;}
+#timeline .lane{position:relative;height:34px;margin:2px 0;}
+#timeline .lane-label{position:absolute;left:4px;top:0;height:100%;width:56px;font-size:11px;
+  color:var(--muted);display:flex;align-items:center;z-index:2;background:var(--panel);}
+#timeline .lane-body{position:absolute;left:64px;right:0;top:0;height:100%;}
+#timeline .ruler{position:sticky;left:0;height:20px;background:var(--panel);}
+.clip{position:absolute;top:3px;height:28px;border-radius:5px;cursor:pointer;
+  font-size:10px;line-height:28px;text-align:center;overflow:hidden;color:#fff;
+  padding:0 4px;border:1px solid rgba(255,255,255,.25);}
+.clip.face{background:#8a5cf0;}
+.clip.motion{background:#f08040;}
+.clip.pose{background:#35a0c0;}
+.clip.say{background:#e05590;}
+.clip.light{background:#d0a020;color:#1a1206;}
+#joints{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:12px 16px;}
+#joints .joint-row{margin:10px 0;}
+#joints .joint-row label{font-size:13px;color:var(--fg);}
+#joints .joint-row .val{float:right;color:var(--accent);font-weight:700;font-family:monospace;}
+#joints input[type=range]{width:100%;}
+.joint-desc{font-size:11px;color:var(--muted);margin-top:-4px;}
+/* 右：程序列表 + 播放 */
+#right{width:260px;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;
+  display:flex;flex-direction:column;}
+#right h3{font-size:12px;color:var(--muted);margin:12px 12px 6px;}
+#steps{flex:1;padding:0 12px;}
+.step{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;margin-bottom:8px;font-size:12px;display:flex;align-items:center;gap:8px;}
+.step .kind{font-weight:700;flex-shrink:0;}
+.step .detail{flex:1;color:var(--muted);word-break:break-all;}
+.step .del{color:var(--danger);cursor:pointer;flex-shrink:0;}
+#toolbar-bottom{padding:10px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;}
+#status{position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);color:#7fd29a;
+  font-size:12px;padding:6px 14px;display:none;font-family:monospace;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title">🎛 乐迪动作编程</div>
+    <input type="text" id="host" placeholder="机器人 IP，如 192.168.1.100（留空自动发现）"
+      style="width:220px;">
+    <button class="btn primary" id="connectBtn">连接机器人</button>
+    <div class="conn" id="connStatus">未连接</div>
+    <button class="btn" id="saveProg">保存程序</button>
+    <button class="btn" id="loadProg">加载程序</button>
+    <button class="btn green" id="playProg">▶ 播放</button>
+    <button class="btn warn" id="stopProg">■ 停止</button>
+  </header>
+
+  <main>
+    <!-- 左：资源库 -->
+    <div class="col" id="library">
+      <h3>表情（点选→加到时间轴）</h3>
+      <div class="lib-grid" id="faceLib"><div class="lib-item">连接后加载…</div></div>
+      <h3>动作（点选→加到时间轴）</h3>
+      <div class="lib-grid" id="motionLib"><div class="lib-item">连接后加载…</div></div>
+      <h3>预置姿态</h3>
+      <div class="lib-grid" id="poseLib"><div class="lib-item">连接后加载…</div></div>
+    </div>
+
+    <!-- 中：时间轴 + 关节 -->
+    <div class="col" id="stage">
+      <div id="timeline"></div>
+      <div id="joints">
+        <h3 style="margin-top:0;">关键帧 · 手动摆动作</h3>
+        <div class="joint-desc">拖动滑杆，机器人实时跟动；点「+ 加关键帧」把这帧记进时间轴。
+          关节1=左臂 · 关节2=身体转向 · 关节3=右臂</div>
+        <div class="joint-row">
+          <label>关节1 · 左臂 <span class="val" id="j1v">0</span></label>
+          <input type="range" id="j1" min="-90" max="150" value="0" step="1">
+        </div>
+        <div class="joint-row">
+          <label>关节2 · 身体转向 <span class="val" id="j2v">0</span></label>
+          <input type="range" id="j2" min="-100" max="100" value="0" step="1">
+        </div>
+        <div class="joint-row">
+          <label>关节3 · 右臂 <span class="val" id="j3v">0</span></label>
+          <input type="range" id="j3" min="-90" max="150" value="0" step="1">
+        </div>
+        <div class="joint-row">
+          <label>关键帧时长(ms) <span class="val" id="msv">800</span></label>
+          <input type="range" id="ms" min="150" max="3000" value="800" step="50">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button class="btn green" id="addPose">+ 加关键帧</button>
+          <button class="btn" id="addSay">+ 加说话</button>
+          <button class="btn" id="addLight">+ 加灯光</button>
+          <button class="btn danger" id="resetPose">归零</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+          <input type="text" id="sayText" placeholder="要说的话" style="flex:1;">
+          <select id="lightColor">
+            <option value="r">红光</option><option value="g">绿光</option>
+            <option value="b">蓝光</option><option value="y">黄光</option>
+            <option value="p">粉光</option><option value="all">全彩</option>
+          </select>
+          <select id="lightAction">
+            <option value="on">亮</option><option value="off">灭</option>
+            <option value="blink.fast">快闪</option><option value="blink.slow">慢闪</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：程序步骤 -->
+    <div class="col" id="right">
+      <h3>程序时间轴</h3>
+      <div id="steps"><div style="color:var(--muted);font-size:12px;">还没有步骤</div></div>
+      <div id="toolbar-bottom">
+        <div style="font-size:12px;color:var(--muted);">程序名</div>
+        <input type="text" id="progName" value="my_program">
+        <button class="btn primary" id="uploadProg">保存到机器人</button>
+        <button class="btn" id="runProg">在机器人上运行</button>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="status"></div>
+
+<script>
+"use strict";
+// ============ 状态 ============
+let host = "";                 // 机器人 base url，如 http://192.168.1.100:8899
+let faces = [], motions = [], poses = [];
+const steps = [];              // 程序步骤 [{kind, payload, name, dur}]
+let playing = false;
+let playTimer = null;
+
+// 预置姿态（与电脑端参考实现同名，物理安全）
+const POSE_PRESETS = [
+  ["nod","点头"],["shake","摇头"],["bow","鞠躬"],["reject","摆手说不"],
+  ["wave_left","举左手"],["wave_right","举右手"],["both_hands","双臂高举"],
+  ["cheer","欢呼"],["excited","兴奋蹦跳"],["hug","张开双臂"],["shy","害羞"],
+  ["comfort","安慰"],["think","思考"],["listen","倾听"],["sleepy","困了"],
+  ["dizzy","头晕"],["proud","骄傲"],["no_result","无奈摊手"],["walk_wave","边走边招手"]
+];
+
+const $ = id => document.getElementById(id);
+const statusEl = $("status");
+function log(msg){ statusEl.style.display="block"; statusEl.textContent = msg; }
+function hideLog(){ setTimeout(()=>{ statusEl.style.display="none"; }, 2500); }
+function setConn(t){ $("connStatus").textContent = t; }
+
+// ============ HTTP（绕代理） ============
+function api(path, method, body){
+  return new Promise((resolve, reject)=>{
+    if(!host){ reject(new Error("未连接机器人")); return; }
+    const xhr = new XMLHttpRequest();
+    xhr.open(method || "GET", host + path, true);
+    xhr.timeout = 5000;
+    xhr.setRequestHeader("Content-Type","application/json");
+    xhr.onreadystatechange = ()=>{
+      if(xhr.readyState!==4) return;
+      if(xhr.status>=200 && xhr.status<300) resolve(xhr.responseText);
+      else reject(new Error("HTTP "+xhr.status+" "+xhr.responseText));
+    };
+    xhr.onerror = ()=>reject(new Error("网络错误"));
+    xhr.ontimeout = ()=>reject(new Error("超时"));
+    xhr.send(body ? body : null);
+  });
+}
+async function apiJson(path, method, obj){
+  const raw = await api(path, method, obj?JSON.stringify(obj):null);
+  try{ return JSON.parse(raw); }catch(e){ return raw; }
+}
+
+// ============ 连接 ============
+$("connectBtn").onclick = async ()=>{
+  let h = $("host").value.trim();
+  if(!h){ setConn("正在 UDP 自动发现…"); h = await discover(); if(!h){ setConn("未发现机器人"); return; } }
+  if(!/^https?:\/\//.test(h)) h = "http://" + h;
+  if(!/:\d+$/.test(h.replace(/^https?:\/\//,""))) h += ":8899";
+  host = h;
+  $("host").value = h;
+  try{
+    const r = await apiJson("/health");
+    setConn("已连接 " + r.ip + " · 引擎" + (r.engine?"就绪":"未就绪"));
+    await loadLibrary();
+  }catch(e){ setConn("连接失败：" + e.message); }
+};
+
+// UDP 发现（机器人 UdpBeacon 广播 JSON 含 "ledi":"agent"）
+function discover(){
+  return new Promise((resolve)=>{
+    // 浏览器无法直接收 UDP 广播，改为提示手动填 IP；若宿主注入 window.lediDiscover 则用之
+    if(window.lediDiscover){ window.lediDiscover(resolve); return; }
+    resolve("");
+  });
+}
+
+async function loadLibrary(){
+  try{
+    const f = await apiJson("/faces"); faces = Array.isArray(f)?f:[];
+    const m = await apiJson("/motions_all"); motions = Array.isArray(m)?m:[];
+    const p = await apiJson("/poses"); poses = Array.isArray(p)?p:[];
+    renderLib();
+  }catch(e){ setConn("加载清单失败："+e.message); }
+}
+
+function renderLib(){
+  $("faceLib").innerHTML = faces.map(n=>
+    `<div class="lib-item" data-kind="face" data-name="${n}">${n}</div>`).join("") || '<div class="lib-item">无</div>';
+  $("motionLib").innerHTML = motions.map(n=>
+    `<div class="lib-item" data-kind="motion" data-name="${n}">${n}</div>`).join("") || '<div class="lib-item">无</div>';
+  $("poseLib").innerHTML = POSE_PRESETS.map(([k,zh])=>
+    `<div class="lib-item" data-kind="pose" data-name="${k}">${zh}</div>`).join("");
+  document.querySelectorAll(".lib-item").forEach(el=>{
+    el.onclick = ()=>{
+      const kind = el.dataset.kind, name = el.dataset.name;
+      if(kind==="face") addStep("face", {name}, name, 1200);
+      else if(kind==="motion") addStep("motion", {name}, name, 1500);
+      else if(kind==="pose") addStep("pose", {preset:name}, name, 1500);
+    };
+  });
+}
+
+// ============ 程序步骤 ============
+function addStep(kind, payload, name, dur){
+  steps.push({kind, payload, name, dur});
+  renderSteps(); renderTimeline();
+}
+function delStep(i){ steps.splice(i,1); renderSteps(); renderTimeline(); }
+
+function renderSteps(){
+  const box = $("steps");
+  if(!steps.length){ box.innerHTML = '<div style="color:var(--muted);font-size:12px;">还没有步骤</div>'; return; }
+  box.innerHTML = steps.map((s,i)=>{
+    const label = {face:"表情",motion:"动作",pose:"姿态",say:"说话",light:"灯光"}[s.kind]||s.kind;
+    const detail = s.kind==="pose" ? (s.payload.preset||s.payload.spec||"") :
+      s.kind==="say" ? (s.payload.text||"") :
+      s.kind==="light" ? (s.payload.color+"/"+s.payload.action) :
+      s.name;
+    return `<div class="step"><span class="kind">${label}</span>
+      <span class="detail">${detail} <em style="color:var(--muted)">(${s.dur}ms)</em></span>
+      <span class="del" data-i="${i}">✕</span></div>`;
+  }).join("");
+  box.querySelectorAll(".del").forEach(el=>{ el.onclick=()=>delStep(+el.dataset.i); });
+}
+
+// ============ 时间轴可视化 ============
+function renderTimeline(){
+  const tl = $("timeline");
+  let total = 0; steps.forEach(s=>total+=s.dur);
+  total = Math.max(total, 1000);
+  const pxPerMs = 0.15;
+  const width = total*pxPerMs + 80;
+  let acc = 0;
+  const lanes = {face:[],motion:[],pose:[],say:[],light:[]};
+  steps.forEach(s=>{ lanes[s.kind].push({s, start:acc}); acc += s.dur; });
+  const laneOrder = ["face","motion","pose","say","light"];
+  const laneNames = {face:"表情",motion:"动作",pose:"姿态",say:"说话",light:"灯光"};
+  let html = `<div class="ruler" style="width:${width}px;"></div>`;
+  laneOrder.forEach(k=>{
+    html += `<div class="lane" style="width:${width}px;">`;
+    html += `<div class="lane-label">${laneNames[k]}</div><div class="lane-body">`;
+    lanes[k].forEach(({s,start})=>{
+      const w = s.dur*pxPerMs;
+      html += `<div class="clip ${k}" style="left:${start*pxPerMs}px;width:${w}px;"
+        title="${s.name||JSON.stringify(s.payload)}">${s.name||s.kind}</div>`;
+    });
+    html += `</div></div>`;
+  });
+  tl.innerHTML = html;
+}
+
+// ============ 手动摆动作（关键帧） ============
+["j1","j2","j3"].forEach(id=>{
+  $(id).addEventListener("input", ()=> $(id+"v").textContent = $(id).value);
+});
+$("ms").addEventListener("input", ()=> $("msv").textContent = $("ms").value);
+
+// 拖滑杆实时让机器人跟动（防抖）
+let jointDebounce = null;
+["j1","j2","j3"].forEach(id=>{
+  $(id).addEventListener("input", ()=>{
+    clearTimeout(jointDebounce);
+    jointDebounce = setTimeout(()=> livePose(), 120);
+  });
+});
+async function livePose(){
+  if(!host) return;
+  const ms = +$("ms").value, j1=+$("j1").value, j2=+$("j2").value, j3=+$("j3").value;
+  const spec = `start[${ms},${j1},${j2},${j3}]end`;
+  try{ await apiJson("/pose", "POST", {name:"live", spec, run:true}); }
+  catch(e){ /* 静默，实时拖动失败不打扰 */ }
+}
+$("addPose").onclick = ()=>{
+  const ms = +$("ms").value, j1=+$("j1").value, j2=+$("j2").value, j3=+$("j3").value;
+  addStep("pose", {spec:[ms,j1,j2,j3]}, `[${ms},${j1},${j2},${j3}]`, ms);
+  log("已加关键帧 ["+ms+","+j1+","+j2+","+j3+"]"); hideLog();
+};
+$("resetPose").onclick = ()=>{ $("j1").value=0;$("j2").value=0;$("j3").value=0;
+  $("j1v").textContent=0;$("j2v").textContent=0;$("j3v").textContent=0; livePose(); };
+$("addSay").onclick = ()=>{
+  const t = $("sayText").value.trim(); if(!t){ log("先输入要说的话"); hideLog(); return; }
+  addStep("say", {text:t}, t, 800);
+};
+$("addLight").onclick = ()=>{
+  addStep("light", {color:$("lightColor").value, action:$("lightAction").value},
+    $("lightColor").value+"/"+$("lightAction").value, 600);
+};
+
+// ============ 播放 ============
+$("playProg").onclick = ()=> playProgram();
+$("stopProg").onclick = ()=>{ playing=false; clearTimeout(playTimer);
+  if(host) api("/stop").catch(()=>{}); log("已停止"); hideLog(); };
+
+async function playProgram(){
+  if(!host){ log("请先连接机器人"); hideLog(); return; }
+  if(!steps.length){ log("程序为空"); hideLog(); return; }
+  playing = true;
+  for(let i=0;i<steps.length && playing;i++){
+    const s = steps[i];
+    try{
+      if(s.kind==="face") await apiJson("/face","POST",{name:s.name,sound:false});
+      else if(s.kind==="motion") await apiJson("/motion","POST",{name:s.name});
+      else if(s.kind==="pose"){
+        if(s.payload.preset) await apiJson("/poserun","POST",{name:s.payload.preset});
+        else await apiJson("/pose","POST",{name:"prog_"+i,spec:"start["+s.payload.spec.join(",")+"]end",run:true});
+      }
+      else if(s.kind==="say") await apiJson("/say","POST",{text:s.payload.text,engine:"auto"});
+      else if(s.kind==="light") await apiJson("/light","POST",s.payload);
+    }catch(e){ log("步骤"+i+"失败："+e.message); }
+    await sleep(s.dur);
+  }
+  playing=false; log("播放完成"); hideLog();
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ============ 保存 / 加载程序（浏览器本地） ============
+$("saveProg").onclick = ()=>{
+  const data = {name:$("progName").value||"my_program", steps};
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = (data.name)+".ledi.json"; a.click();
+  log("已下载程序文件"); hideLog();
+};
+$("loadProg").onclick = ()=>{
+  const inp = document.createElement("input"); inp.type="file"; inp.accept=".json";
+  inp.onchange = ()=>{
+    const f = inp.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        const d = JSON.parse(r.result);
+        steps.length=0; (d.steps||[]).forEach(s=>steps.push(s));
+        $("progName").value = d.name||"my_program";
+        renderSteps(); renderTimeline(); log("已加载程序："+d.name); hideLog();
+      }catch(e){ log("加载失败："+e.message); hideLog(); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+};
+
+// ============ 保存/运行到机器人 ============
+$("uploadProg").onclick = async ()=>{
+  if(!host){ log("先连接机器人"); hideLog(); return; }
+  const name = ($("progName").value||"my_program").replace(/[^a-zA-Z0-9_]/g,"");
+  const frames = steps.filter(s=>s.kind==="pose" && s.payload.spec)
+    .map(s=>s.payload.spec);
+  try{
+    // 把姿态关键帧连成一段连续动作写进机器人（/pose 支持多帧）
+    let spec = "";
+    if(frames.length){ spec = "start"+frames.map(f=>"["+f.join(",")+"]").join(",")+"end"; }
+    const r = await apiJson("/pose","POST",{name, spec, run:false});
+    log("保存到机器人："+JSON.stringify(r)); hideLog();
+  }catch(e){ log("保存失败："+e.message); hideLog(); }
+};
+$("runProg").onclick = async ()=>{
+  if(!host){ log("先连接机器人"); hideLog(); return; }
+  const name = ($("progName").value||"my_program").replace(/[^a-zA-Z0-9_]/g,"");
+  try{
+    const r = await apiJson("/poserun","POST",{name});
+    log("运行："+JSON.stringify(r)); hideLog();
+  }catch(e){ log("运行失败："+e.message); hideLog(); }
+};
+
+// 若宿主（机器人 WebView）通过 JS bridge 注入了自动连接
+window.addEventListener("load", ()=>{
+  if(window.lediAutoHost){ $("host").value = window.lediAutoHost; $("connectBtn").click(); }
+});
+</script>
+</body>
+</html>

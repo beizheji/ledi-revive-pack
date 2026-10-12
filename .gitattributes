@@ -1,0 +1,31 @@
+# 默认：文本 LF
+* text=auto eol=lf
+
+# Windows 批处理：cmd 只认 CRLF（且内容必须是纯 ASCII，见 04_脚本/一键落地.bat）
+*.bat text eol=crlf
+
+# ★ 刷机工具输入：逐字节保护（SP Flash Tool 使用者会按 README 校验值 md5 核对，
+#   行尾被 git 转换 = 远端下载的 scatter 对不上登记值）
+MT6580_Android_scatter.txt -text
+
+# CSV 保持 CRLF（与 api文档仓 的 .gitattributes 口径一致）
+*.csv text eol=crlf
+
+# 二进制（不做行尾转换、不做文本 diff）
+# 注：*.apk 理论上不进本仓（APK 走 ledi-apk-archive 的 Release，见 .gitignore）；
+#     *.p12/*.pk8 是签名密钥后缀，同样不进本仓。此处标记 binary 只是误放时的兜底。
+*.apk  binary
+*.img  binary
+*.so   binary
+*.zip  binary
+*.jar  binary
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.p12  binary
+*.pk8  binary
+*.pem  binary
+*.bin  binary
+*.dat  binary
+*.lic  binary
+*.bsg  binary

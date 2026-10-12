@@ -1,0 +1,1695 @@
+[
+ {
+  "endpoint": "GET /abilities",
+  "domain": "cap",
+  "comment": "================= 能力真源 / 权限矩阵（v207）=================\nGET /abilities        → 三态矩阵：read（只读查询）/ write（有限更改）/\nplan（编排间隔）/ forbid（安全红线：只读不可改）\nGET /abilitiesselftest → **纯静态**自检（红线拒绝、清单自洽、实现齐备）\n★ 用户 2026-10-11 要\"AI 完全接管 + 保证安全\"，前提是**边界可见**：\n把权限矩阵做成一个可查询的只读端点，而不是只写在注释里。\n★ 只读、不吃 Context ⇒ 屏保期也可查（\"它现在能干什么\"不用先叫醒它）。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /abilitiesselftest",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(Abilities.selftest()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /adbwifi",
+  "domain": "sys",
+  "comment": "================= 无线 ADB（手机端投屏用）=================\nGET  /adbwifi                       -> 状态（on/listening/ip/port/scrcpy 命令）\nPOST /adbwifi {\"on\":true}           -> 一键开（写 service.adb.tcp.port=5555）\nPOST /adbwifi {\"on\":false}          -> 一键关（写 -1）\nPOST /adbwifi {\"auto\":true}         -> 记住\"下次开机也开\"（默认不记）\n\n★ 为什么在这里能做：本 App 是 android.uid.system(uid=1000) + SELinux Permissive，\n实测可以直接 setprop。\n★ 但\"只写属性就能开\"是**错的**（我一度把它当已验证）：本 ROM 的 adbd\n**只在启动时读一次** `service.adb.tcp.port`。开/关都必须配一次\n`setprop ctl.restart adbd`，且状态一律以 /proc/net/tcp 为准。\n详见 AdbWifi 的类注释。",
+  "params": [],
+  "hint": "return AdbWifi.state(ctx)"
+ },
+ {
+  "endpoint": "POST /adbwifi",
+  "domain": "sys",
+  "comment": "",
+  "params": [
+   "auto"
+  ],
+  "hint": "AdbWifi.setAuto()"
+ },
+ {
+  "endpoint": "GET /ai",
+  "domain": "voice",
+  "comment": "================= newcore：AI 大脑（直连/回落，可切换） =================",
+  "params": [],
+  "hint": "return ai == null ? \"{\\\"error\\\":\\\"ai not ready\\\"}\" : ai.statusJson()"
+ },
+ {
+  "endpoint": "POST /ai/ask",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "context",
+   "text"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"ai not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /ai/config",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "base",
+   "engine",
+   "key",
+   "model"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"ai not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /ai/status",
+  "domain": "voice",
+  "comment": "================= newcore：AI 大脑（直连/回落，可切换） =================",
+  "params": [],
+  "hint": "return ai == null ? \"{\\\"error\\\":\\\"ai not ready\\\"}\" : ai.statusJson()"
+ },
+ {
+  "endpoint": "GET /asrdialog",
+  "domain": "voice",
+  "comment": "---- v53：唤醒后是否「先听再说」 ----\n开：POST /asrdialog {\"on\":true,\"sec\":5}   关：POST /asrdialog {\"on\":false}\n默认关。等 /asrtest 确认能拿到识别文本后再打开。",
+  "params": [
+   "on",
+   "sec"
+  ],
+  "hint": "Math.max()"
+ },
+ {
+  "endpoint": "POST /asrdialog",
+  "domain": "voice",
+  "comment": "---- v53：唤醒后是否「先听再说」 ----\n开：POST /asrdialog {\"on\":true,\"sec\":5}   关：POST /asrdialog {\"on\":false}\n默认关。等 /asrtest 确认能拿到识别文本后再打开。",
+  "params": [
+   "on",
+   "sec"
+  ],
+  "hint": "Math.max()"
+ },
+ {
+  "endpoint": "POST /asrtest",
+  "domain": "probe",
+  "comment": "---- v53：离线 ASR 探测（把\"用户说了什么\"变成文本，端到端通路缺失的那一环） ----\n用法：POST /asrtest {\"sec\":8}                     —— 阻塞 sec 秒，期间对着机器人说话\nPOST /asrtest {\"sec\":8,\"grammar\":\"assets:///baidu_speech_grammar.bsg\"}\nPOST /asrtest {\"sec\":8,\"extra\":\"{\\\"vad\\\":\\\"disable\\\"}\"}   覆盖任意 asr.start 参数\n免麦确定性测试（v76）：\nPOST /asrtest {\"sec\":6,\"infile\":\"/sdcard/ledi_test.pcm\"}\n★ infile 是设备上的**裸 PCM**（16k/16bit/单声道），不是 WAV。\nWAV 的 44 字节 RIFF 头会被当成第一个采样，且读不出尾部。\n键名/格式依据见 AsrProbe.INFILE_KEY（反汇编 EventManagerMic）。\n走文件输入时不会停唤醒引擎（根本不碰麦）。",
+  "params": [
+   "extra",
+   "grammar",
+   "infile",
+   "sec"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /attitudetest",
+  "domain": "probe",
+  "comment": "================= 姿态数学自检（v153） =================\nGET /attitudetest → 把\"能静态判死\"的三项断言摊开：重力不变式、roll 绕 Y、\npitch 绕 X。不依赖真机、不依赖人手倾斜。详见 Attitude.selfTest()。",
+  "params": [],
+  "hint": "return Attitude.selfTest()"
+ },
+ {
+  "endpoint": "POST /base",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(motion.baseAction(field(body, query, \"name\"))) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /battery",
+  "domain": "sense",
+  "comment": "================= 电量（v202）=================\nGET /battery → 完整电量对象（格数/电压/温度/充电状态/来源/新鲜度）\n★ 与 GET /status 里的 battery_detail 是**同一个** Battery.info(ctx)，\n不另写一份解析 —— 这台机器上\"两份读数各说各话\"已经吃过亏。\n★ 本机只有\"格数\"这一路是**原厂在推**（ACTION_BATTERY_CHANGED，SensorHub 已收），\n电压/温度/健康是 Android 标准字段、本 ROM 喂没喂要**当场看**才有结论；\nBattery.info 会照实报 present/age_ms，没喂到就是空，不假装。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /bootlog",
+  "domain": "probe",
+  "comment": "启动溯源日志（这台 ROM 屏蔽 App 的 logcat，排障只能看这个文件）",
+  "params": [],
+  "hint": "return \"{\\\"log\\\":\\\"\" + J.esc(BootLog.tail(80)) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /bt",
+  "domain": "sys",
+  "comment": "================= 蓝牙开关（v176）=================\nGET  /bt               -> 蓝牙实况（on/state/keep/accept + 看护计数器）\nPOST /bt {\"on\":true}   -> 开（并把\"由我们长期看住\"置回 true）\nPOST /bt {\"on\":false}  -> 关（并且**记住是用户关的**，后勤不再自动开回来）\n\n★ 为什么必须有这条：用户的遥控主路径是「先用蓝牙与机器人连接，再用蓝牙\n握手网络」，而 2026-09-25 实测设备跑到 104 分钟时蓝牙是关的 ——\n只要 WiFi 这条腿还在，就必须有一条**从 HTTP 去开蓝牙**的路，\n否则手机/电脑永远迈不进第一环（BLE 配网、SPP 直连都要求适配器是开的）。\n★ 语义按用户的理解来：这个开关**就是蓝牙开关本身**，不是\"看护策略开关\"。\n所以 on=false 必须同时把 keep 置 false —— 否则 30 秒后自己开回来，\n界面上那个\"已关闭\"就是假的（本项目最忌讳这类开关）。\n★ enable() 是异步的（10→11→12 要几百毫秒到几秒），本端点**不阻塞等**\n（请求路径上不能挂异步等待）：立刻回执，要确认就轮询 GET /bt 的 on。",
+  "params": [],
+  "hint": "return \"{\\\"bt\\\":\" + AgentService.btDiagJson(ctx) + \"}\""
+ },
+ {
+  "endpoint": "POST /bt",
+  "domain": "sys",
+  "comment": "",
+  "params": [
+   "on"
+  ],
+  "hint": "AgentService.setBtKeepOn()"
+ },
+ {
+  "endpoint": "GET /caps",
+  "domain": "cap",
+  "comment": "================= 本机能力索引（v203）=================\nGET /caps            → 索引摘要（各类计数 + 说明书是否加载 + 是否 busy）\nGET /caps?full=1     → 全量清单（网页面板用）\nGET /caps?q=握手     → 检索（可解释：每条带命中关键词）\n★ 这是\"机器人自己找得到自己会什么\"的那张表 —— 能力自省出来（动作表/表情表），\n说明书打包在 assets/ledi_caps.txt 随包发布（用户要求\"打包进本地部署\"）。",
+  "params": [
+   "full",
+   "k",
+   "q"
+  ],
+  "hint": "CapIndex.search()"
+ },
+ {
+  "endpoint": "GET /capsselftest",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(CapIndex.selftest()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /config",
+  "domain": "media",
+  "comment": "================= 网关 / 网络 =================",
+  "params": [
+   "gateway"
+  ],
+  "hint": "return \"{\\\"gateway\\\":\\\"\" + J.esc(speaker.getGateway()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /console/",
+  "domain": "ui",
+  "comment": "前缀路由：返回控制台页面 assets/console.html（不受屏保闸）",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /console/agent",
+  "domain": "cap",
+  "comment": "---- 万能转发：页面里绝大多数按钮都走这条 ----\n页面发 {path:\"/motion\", body:{...}}；老协议也可能发 \"b\":\"{...}\" 字符串形式。",
+  "params": [
+   "b",
+   "body",
+   "path"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"path required\\\"}\""
+ },
+ {
+  "endpoint": "POST /console/agent",
+  "domain": "cap",
+  "comment": "---- 万能转发：页面里绝大多数按钮都走这条 ----\n页面发 {path:\"/motion\", body:{...}}；老协议也可能发 \"b\":\"{...}\" 字符串形式。",
+  "params": [
+   "b",
+   "body",
+   "path"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"path required\\\"}\""
+ },
+ {
+  "endpoint": "GET /console/appinfo",
+  "domain": "cap",
+  "comment": "---- 版本 / 监听信息：页面顶栏那一行 ----",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "GET /console/config",
+  "domain": "cap",
+  "comment": "---- 配置：页面的启动依赖，缺了整页只显示一行错误 ----\n页面从 CFG 里取\"动作/舞蹈/表情/预设姿态\"的全部清单，所以这几个字段必须真。",
+  "params": [],
+  "hint": "MotionController.isDance()"
+ },
+ {
+  "endpoint": "POST /console/config",
+  "domain": "cap",
+  "comment": "---- 配置：页面的启动依赖，缺了整页只显示一行错误 ----\n页面从 CFG 里取\"动作/舞蹈/表情/预设姿态\"的全部清单，所以这几个字段必须真。",
+  "params": [],
+  "hint": "MotionController.isDance()"
+ },
+ {
+  "endpoint": "GET /console/dialog",
+  "domain": "cap",
+  "comment": "---- 对话日志：那是**网关**把三条通路汇总出来的，机器人端没有这份账 ----",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/dialog",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":false,\\\"error\\\":\\\"对话日志属于电脑端网关，机器人端没有可清的账\\\"}\""
+ },
+ {
+  "endpoint": "GET /console/doa",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/doa",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/emergency",
+  "domain": "cap",
+  "comment": "---- 应急发送：把一段文字交给机器人\"念出来 + 配一个表情\"----\n电脑端那份还会本地挑表情与动作；这里先只保证**说得出**，不伪造没做的事。",
+  "params": [
+   "text"
+  ],
+  "hint": "return \"{\\\"ok\\\":false,\\\"error\\\":\\\"text required\\\"}\""
+ },
+ {
+  "endpoint": "POST /console/hold",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/key",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": "InputInject.available()"
+ },
+ {
+  "endpoint": "GET /console/lastuser",
+  "domain": "cap",
+  "comment": "---- 机器人端不认识的 input ----",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /console/mirror",
+  "domain": "cap",
+  "comment": "---- 屏幕投屏（v195）：控 + 配置 ----\n\n「看」那三条（GET /mirror.h264 流、/mirror.jpg 单张、/mirror/stat 状态）\n在 HttpServer 里、router 之前就接住了 —— 一是它们吐的是**二进制字节流**，\n不是 JSON，走不进这个字符串路由；二是它们要在屏保中也能用。\n这里只补「控」（把网页上的一次点击送回屏幕）和「配置」（尺寸/码率/注入开关）。",
+  "params": [
+   "inject"
+  ],
+  "hint": "ScreenCast.get()"
+ },
+ {
+  "endpoint": "POST /console/mirror",
+  "domain": "cap",
+  "comment": "---- 屏幕投屏（v195）：控 + 配置 ----\n\n「看」那三条（GET /mirror.h264 流、/mirror.jpg 单张、/mirror/stat 状态）\n在 HttpServer 里、router 之前就接住了 —— 一是它们吐的是**二进制字节流**，\n不是 JSON，走不进这个字符串路由；二是它们要在屏保中也能用。\n这里只补「控」（把网页上的一次点击送回屏幕）和「配置」（尺寸/码率/注入开关）。",
+  "params": [
+   "inject"
+  ],
+  "hint": "ScreenCast.get()"
+ },
+ {
+  "endpoint": "GET /console/rotation",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/rotation",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /console/screenimg",
+  "domain": "cap",
+  "comment": "---- 屏幕显示图片：页面上填的是**电脑上的路径**，机器人读不到 ----\n明确回绝并给出去路，别让它看起来\"点了没反应\"。图片走 POST /img 的 base64。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/screenimg",
+  "domain": "cap",
+  "comment": "---- 屏幕显示图片：页面上填的是**电脑上的路径**，机器人读不到 ----\n明确回绝并给出去路，别让它看起来\"点了没反应\"。图片走 POST /img 的 base64。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /console/sdk",
+  "domain": "cap",
+  "comment": "---- 原厂 SDK：页面⑬区把三个接口一次要齐 ----",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/sdk",
+  "domain": "cap",
+  "comment": "---- 原厂 SDK：页面⑬区把三个接口一次要齐 ----",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /console/state",
+  "domain": "cap",
+  "comment": "---- 传感器 / 状态：页面⑩区 ----\nsensors 直接内联 /sensors 的原样 JSON（它就是页面 fmtState 要的那个结构），\nsummary 取 SensorHub 自己的那句总结。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/state",
+  "domain": "cap",
+  "comment": "---- 传感器 / 状态：页面⑩区 ----\nsensors 直接内联 /sensors 的原样 JSON（它就是页面 fmtState 要的那个结构），\nsummary 取 SensorHub 自己的那句总结。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/swipe",
+  "domain": "cap",
+  "comment": "---- 投屏的「控」：把网页上的一次点击 / 拖拽 / 按键 / 打字送回机器人屏幕 ----\n坐标一律用**机器人屏幕的像素**（和 /mirror.h264 的头 X-Ledi-Width/Height 同一域）；\n页面把显示尺寸按比例换算过来，所以浏览器窗口多大都不影响落点。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/tap",
+  "domain": "cap",
+  "comment": "---- 投屏的「控」：把网页上的一次点击 / 拖拽 / 按键 / 打字送回机器人屏幕 ----\n坐标一律用**机器人屏幕的像素**（和 /mirror.h264 的头 X-Ledi-Width/Height 同一域）；\n页面把显示尺寸按比例换算过来，所以浏览器窗口多大都不影响落点。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /console/text",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": "InputInject.available()"
+ },
+ {
+  "endpoint": "POST /console/tts",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": "return handle(\"POST\", \"/tts\", \"\", body)"
+ },
+ {
+  "endpoint": "GET /console/ttsstatus",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"robot\\\":\" + handle(\"GET\", \"/ttsstatus\", \"\", \"\") + \"}\""
+ },
+ {
+  "endpoint": "POST /console/ttsstatus",
+  "domain": "cap",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"robot\\\":\" + handle(\"GET\", \"/ttsstatus\", \"\", \"\") + \"}\""
+ },
+ {
+  "endpoint": "POST /crashprobe",
+  "domain": "probe",
+  "comment": "---- ★ v159：主线程崩溃盾的**验收探针**（只判定，不影响任何正常链路） ----\n开：POST /crashprobe {\"main\":true}   往主线程投一个**必抛**的 Runnable，\n立即回执（不等结果 —— 等的话请求会跟着主线程一起废掉）。\n看：GET /status\n· 盾生效  → crashguard.mt_shield +1、**pid 不变**、revive.proc_starts 不变\n· 盾没生效→ pid 变、3s 后 CrashGuard 复活（proc_starts +1、crashes 归零）\n★ 为什么必须造得出这一次崩溃：如果只能\"等机器自己崩\"，那这个加固就永远只能\n写\"未验\" —— 而\"未验的加固\"和\"没有加固\"在判断上是同一件事。\n★ 风险边界：无任何自动调用点；不传 {\"main\":true} 时只回提示（同 POST /kill）。",
+  "params": [
+   "main"
+  ],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /dance",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(motion.dance(field(body, query, \"name\"))) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /deepsleep",
+  "domain": "ui",
+  "comment": "================= ★★★ v190：深睡（长按头顶键进的那一档） =================\n查：GET  /deepsleep   → deep / sleeping / idle_stopped / freeze_mode\n设：POST /deepsleep {\"on\":true|false}   只改\"进屏保时冻谁\"（不动睡眠状态）\nPOST /deepsleep {\"now\":true|false}  立刻进/出屏保（等价 /sleep on|off）\n\n★ 为什么单独给一条路由、而不是塞进 /sleep 的参数里：\n\"进屏保时冻谁\"（配置）与\"现在睡不睡\"（状态）是**两件事**。混在一个参数里，\n就会出现\"想改配置却顺手把机器人叫醒/弄睡\"的事故 —— 这类\"一个入口干两件事\"\n在本项目已经反复出问题（见 /listenled 为什么 mode 与 on 分开）。\n\n★ 这条路由是 v190 的**唯一远程解药**：deep 模式下原厂主进程被 SIGSTOP，\n头顶键广播就没人发了（SensorHub 类注释：按键是原厂发广播给我们的）。\n所以它被显式放进屏保白名单，见上面总闸那段。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /deepsleep",
+  "domain": "ui",
+  "comment": "================= ★★★ v190：深睡（长按头顶键进的那一档） =================\n查：GET  /deepsleep   → deep / sleeping / idle_stopped / freeze_mode\n设：POST /deepsleep {\"on\":true|false}   只改\"进屏保时冻谁\"（不动睡眠状态）\nPOST /deepsleep {\"now\":true|false}  立刻进/出屏保（等价 /sleep on|off）\n\n★ 为什么单独给一条路由、而不是塞进 /sleep 的参数里：\n\"进屏保时冻谁\"（配置）与\"现在睡不睡\"（状态）是**两件事**。混在一个参数里，\n就会出现\"想改配置却顺手把机器人叫醒/弄睡\"的事故 —— 这类\"一个入口干两件事\"\n在本项目已经反复出问题（见 /listenled 为什么 mode 与 on 分开）。\n\n★ 这条路由是 v190 的**唯一远程解药**：deep 模式下原厂主进程被 SIGSTOP，\n头顶键广播就没人发了（SensorHub 类注释：按键是原厂发广播给我们的）。\n所以它被显式放进屏保白名单，见上面总闸那段。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /dialog",
+  "domain": "voice",
+  "comment": "---- v58：对话通路（唤醒后听一整句，说完静音 1 秒交给 AI；播报期间可被语音打断） ----\n查：GET  /dialog\n配：POST /dialog {\"on\":true,\"max_ms\":10000,\"silence_ms\":1000,\"turns\":3}\n试：POST /dialog {\"listen\":true}   —— 阻塞听一轮（最多 max_ms），返回原文与纠错后的文本\nPOST /dialog {\"fix\":\"观灯\"}    —— 单独验证错字纠正表",
+  "params": [
+   "followup",
+   "max_ms",
+   "on",
+   "silence_ms",
+   "turns"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /dialog",
+  "domain": "voice",
+  "comment": "---- v58：对话通路（唤醒后听一整句，说完静音 1 秒交给 AI；播报期间可被语音打断） ----\n查：GET  /dialog\n配：POST /dialog {\"on\":true,\"max_ms\":10000,\"silence_ms\":1000,\"turns\":3}\n试：POST /dialog {\"listen\":true}   —— 阻塞听一轮（最多 max_ms），返回原文与纠错后的文本\nPOST /dialog {\"fix\":\"观灯\"}    —— 单独验证错字纠正表",
+  "params": [
+   "followup",
+   "max_ms",
+   "on",
+   "silence_ms",
+   "turns"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /dialogturn",
+  "domain": "voice",
+  "comment": "---- v178：远程验收整轮应答（连\"听\"也跳过） ----\n\n用法：POST /dialogturn {\"text\":\"你好呀\",\"why\":\"http\"}\n\n★ 为什么还要在 /forcewake 之外再加一个：/forcewake 跳过的是**唤醒词**，\n但\"听一句话\"本身仍是麦克风 + 在线/离线识别，房间里没人说话照样测不到\n后面那一环。本轮（v178）要验的是「**播完自动续听**」，它在播报之后 ——\n注入首句就能让链路一路跑到那里，且不需要真人在场。\n与 /intentrun、/forcewake 同类：真执行的远程验收入口，不是只判定。",
+  "params": [],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /display",
+  "domain": "media",
+  "comment": "",
+  "params": [
+   "text"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(display.show(field(body, query, \"text\"))) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /displayoff",
+  "domain": "media",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(display.hide()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /doa",
+  "domain": "sense",
+  "comment": "---- v60：双麦克风声源定位 ----\n查：GET  /doa\n探：POST /doa {\"probe\":true,\"ms\":1200}  —— 一次性可行性探针（约 6 秒），\n直接回答\"这机器打开 STEREO 拿到的是真双路还是复制两份\"\n开：POST /doa {\"on\":true}               —— 背一个常驻线程持续估计方位\n标：POST /doa {\"calib\":\"left\"}          —— 人站在【机器人的左边】说话时调，\n把 lag 的符号和满量程参考值记下来（不标定只能输出\"偏A侧/偏B侧\"）\n试：POST /doa {\"test\":\"左\"}             —— 只翻译方位名，不碰硬件",
+  "params": [
+   "ms",
+   "probe"
+  ],
+  "hint": "S.length()"
+ },
+ {
+  "endpoint": "POST /doa",
+  "domain": "sense",
+  "comment": "---- v60：双麦克风声源定位 ----\n查：GET  /doa\n探：POST /doa {\"probe\":true,\"ms\":1200}  —— 一次性可行性探针（约 6 秒），\n直接回答\"这机器打开 STEREO 拿到的是真双路还是复制两份\"\n开：POST /doa {\"on\":true}               —— 背一个常驻线程持续估计方位\n标：POST /doa {\"calib\":\"left\"}          —— 人站在【机器人的左边】说话时调，\n把 lag 的符号和满量程参考值记下来（不标定只能输出\"偏A侧/偏B侧\"）\n试：POST /doa {\"test\":\"左\"}             —— 只翻译方位名，不碰硬件",
+  "params": [
+   "ms",
+   "probe"
+  ],
+  "hint": "S.length()"
+ },
+ {
+  "endpoint": "GET /emotion",
+  "domain": "cap",
+  "comment": "================= ★★★ v189：情绪系统 =================\n查：GET  /emotion  → 当前情绪 + 两个维度 + 它现在会让待机摆哪张脸\n设：POST /emotion {\"name\":\"happy\"}          按**情绪名**（原厂词汇表内的才认）\nPOST /emotion {\"code\":10300}            按**原厂数字码**\nPOST /emotion {\"valence\":0.9,\"arousal\":0.8}  直接给两个维度\nPOST /emotion {\"reset\":true}            回到基线\n自检：GET /emotionselftest  → 用打包进来的**原厂两份 XML** 跑不变量断言\n\n★ 为什么情绪名是从 assets 的 emotions.xml 现读、而不是写死一张表：\n写死就等于\"我们编了一套情绪\"，与原厂那套会悄悄分叉；现读则原厂改表我们跟。\n词典外的一律拒绝（setByName 会返回 false），不许\"发明\"情绪。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /emotion",
+  "domain": "cap",
+  "comment": "================= ★★★ v189：情绪系统 =================\n查：GET  /emotion  → 当前情绪 + 两个维度 + 它现在会让待机摆哪张脸\n设：POST /emotion {\"name\":\"happy\"}          按**情绪名**（原厂词汇表内的才认）\nPOST /emotion {\"code\":10300}            按**原厂数字码**\nPOST /emotion {\"valence\":0.9,\"arousal\":0.8}  直接给两个维度\nPOST /emotion {\"reset\":true}            回到基线\n自检：GET /emotionselftest  → 用打包进来的**原厂两份 XML** 跑不变量断言\n\n★ 为什么情绪名是从 assets 的 emotions.xml 现读、而不是写死一张表：\n写死就等于\"我们编了一套情绪\"，与原厂那套会悄悄分叉；现读则原厂改表我们跟。\n词典外的一律拒绝（setByName 会返回 false），不许\"发明\"情绪。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /emotionselftest",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(Emotion.selftestOnDevice(ctx)) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /exclusive",
+  "domain": "media",
+  "comment": "★ v198：原来这里还有一个 `POST /volume`（只认 {\"n\":…}，解析失败就悄悄按 8 处理）。\n已经**合并**到上面那处，走 Av 单一出口 ——\n留着两份必然分叉（一份夹上限、一份不夹；一份回读、一份不回读）。\n参数名 n 仍然认，所以网页 ⑨ 的滑条不受影响。",
+  "params": [
+   "on"
+  ],
+  "hint": "return \"{\\\"exclusive\\\":\" + motion.isExclusive() + \"}\""
+ },
+ {
+  "endpoint": "POST /face",
+  "domain": "sense",
+  "comment": "",
+  "params": [
+   "name",
+   "sound"
+  ],
+  "hint": "FaceController.normalize()"
+ },
+ {
+  "endpoint": "POST /faceoff",
+  "domain": "sense",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(face.hide()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /faces",
+  "domain": "sense",
+  "comment": "================= 表情 / 显示 =================",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /faces_detail",
+  "domain": "sense",
+  "comment": "",
+  "params": [],
+  "hint": "FaceController.listFaces()"
+ },
+ {
+  "endpoint": "POST /facesound",
+  "domain": "sense",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /forcewake",
+  "domain": "voice",
+  "comment": "---- v102：远程强制唤醒（远程验收专用） ----\n\n用法：POST /forcewake {\"why\":\"http\"}\n\n★ 为什么需要它：完整对话链路（唤醒 → 听 → AI → 播报）的验收卡在\n\"必须有人先喊一句唤醒词\"上 —— 而唤醒词是**离线 KWS**，对房间混响敏感\n（见 §二 的 KWS 脆弱度画像），喊十次不一定中一次。这样每次验收都变成\n\"先跟唤醒较劲\"，真正要测的那一环反而测不到。\n强制唤醒走的是**同一条** `dispatchWake` 链路（与\"摸头顶\"完全一致），\n只是跳过了 KWS 那一步，把\"唤醒\"这个变量从验收里摘出去。\n与 /intentrun 同类：都是\"真执行\"的远程验收入口，不是只判定。",
+  "params": [],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /freeze",
+  "domain": "sys",
+  "comment": "",
+  "params": [
+   "main"
+  ],
+  "hint": "ProcessFreezer.freezeAsync()"
+ },
+ {
+  "endpoint": "GET /freezer",
+  "domain": "sys",
+  "comment": "================= 屏保期冻原厂（v140） =================\nGET  /freezer                        → 上一次冻/解冻动了哪些进程、成功没\nPOST /freeze {\"main\":true|false}     → 立刻冻结原厂（验收用；屏保会自动做）\nPOST /thaw                           → 立刻解冻（★ 冻歪了时的远程解药）\n\n★ 为什么必须能在屏保期间调到它们：屏保本身就会冻原厂，所以\"冻错了\"这件事\n只会在屏保期间发生；这时若被屏保总闸挡住，就只剩重启一条路。",
+  "params": [],
+  "hint": "return ProcessFreezer.statusJson()"
+ },
+ {
+  "endpoint": "POST /gear",
+  "domain": "media",
+  "comment": "================= 设置齿轮 =================",
+  "params": [
+   "ip",
+   "on"
+  ],
+  "hint": "S.isEmpty()"
+ },
+ {
+  "endpoint": "POST /gsensorcali",
+  "domain": "motion",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"result\\\":\\\"calibrating\\\"}\""
+ },
+ {
+  "endpoint": "GET /headkey",
+  "domain": "sense",
+  "comment": "================= 头顶按键（v116）=================\nGET  /headkey                        -> 状态（含按下次数，用来证明按键真的到了）\nPOST /headkey {\"on\":false}           -> 关掉这个功能\nPOST /headkey {\"main\":\"brain\"}       -> 换\"主程序\"目标 factory|brain|off\nPOST /headkey {\"wake\":false}         -> 按键时不唤醒语音\nPOST /headkey {\"sim\":\"down\"}         -> 软件模拟一次按下（走**同一条**逻辑）\nPOST /headkey {\"sim\":\"long\"}         -> 软件模拟一次长按（= 屏保开/关）\n\n★ 为什么要 sim：物理按键只有用户按得动。sim 验证的是\"到了之后做对没有\"，\n真按验证的是\"广播到底送没送到\"—— 两件事必须分开证，不能拿一个当另一个。\n★ v127 起长短按是两个不同动作，sim 也要分别给：短按只走 press()，\n长按只走 onHold()，这样\"长按阈值判错\"和\"长按动作写错\"能分开定位。",
+  "params": [],
+  "hint": "Key.json()"
+ },
+ {
+  "endpoint": "POST /headkey",
+  "domain": "sense",
+  "comment": "",
+  "params": [
+   "main",
+   "on",
+   "sim",
+   "wake"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"headkey not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /health",
+  "domain": "sys",
+  "comment": "================= 状态 =================",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "GET /home",
+  "domain": "media",
+  "comment": "================= 桌面（HOME） =================\n需求：把桌面**锁定在原厂机器人 App 上**（不是 agent）。三级兜底见 HomeSetter。\nGET  /home                  -> 默认桌面 / 目标 / recorded / candidates_n / unique / settled\nPOST /sethome               -> 把偏好写到目标桌面（幂等）\n★ v133 起还会**对齐我们自己那条 HOME 入口**\n（target≠我们 ⇒ 关掉自己那条 ⇒ 全机候选唯一），\n返回 result=aligned 表示刚做了这一步。\nPOST /sethome {\"force\":true} -> 允许走 ④（禁用其它 HOME 入口的兜底路径）\nPOST /sethome?restore=true  -> 物归原主（恢复被禁用的入口 + 把目标桌面设回去）\nPOST /sethome?lock=false    -> 只解除\"持续锁定\"，当前偏好保留\n★ 权威判据不在本接口：按一次 Home 看 `dumpsys window` 的 mCurrentFocus\n（部署脚本第 4 步）。",
+  "params": [],
+  "hint": "return HomeSetter.statusJson(ctx)"
+ },
+ {
+  "endpoint": "GET /ia",
+  "domain": "voice",
+  "comment": "================= 在线听写（v97，讯飞 MSC）=================\n\n离线那套是\"语法受限解码器 + 词典固化在声学模型里\"，只能听懂词表内的整句\n\n「听懂任意一句话」只剩云端。云端凭据沿用设备原有配置，本仓库不含任何凭据。\n\n用法：\nGET  /ia                      只建初始化，验授权（不消耗识别额度）\nPOST /iatest {\"infile\":\"/sdcard/x.wav\"}\n可选 pace=40（每 1280 字节间隔 ms，40≈实时）、wait=15000（等结果上限）\nextra=\"{\\\"asr_ptt\\\":\\\"0\\\"}\"（任意讯飞 SpeechConstant 键覆盖）\n★ 不传 infile 时**不会**自动开麦 —— 先只做文件输入，把\"麦克风/环境\"\n这一整类变量锁死；通路确认后再接麦克风。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /ia",
+  "domain": "voice",
+  "comment": "================= 在线听写（v97，讯飞 MSC）=================\n\n离线那套是\"语法受限解码器 + 词典固化在声学模型里\"，只能听懂词表内的整句\n\n「听懂任意一句话」只剩云端。云端凭据沿用设备原有配置，本仓库不含任何凭据。\n\n用法：\nGET  /ia                      只建初始化，验授权（不消耗识别额度）\nPOST /iatest {\"infile\":\"/sdcard/x.wav\"}\n可选 pace=40（每 1280 字节间隔 ms，40≈实时）、wait=15000（等结果上限）\nextra=\"{\\\"asr_ptt\\\":\\\"0\\\"}\"（任意讯飞 SpeechConstant 键覆盖）\n★ 不传 infile 时**不会**自动开麦 —— 先只做文件输入，把\"麦克风/环境\"\n这一整类变量锁死；通路确认后再接麦克风。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /iatest",
+  "domain": "probe",
+  "comment": "",
+  "params": [
+   "infile"
+  ],
+  "hint": "return \"{\\\"ok\\\":false,\\\"error\\\":\\\"缺少 infile（本轮只支持文件输入，避免麦克风变量混进来）\\\"}\""
+ },
+ {
+  "endpoint": "POST /ilisten",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "dump",
+   "loud",
+   "sec",
+   "silence",
+   "src"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /img",
+  "domain": "sense",
+  "comment": "POST /img {data:\"base64(PNG/JPG)\", max:800}  在机器人屏幕上显示一张图片\n（图片由电脑端读文件、纠方向、缩放后编码送来；机器人只解码显示）",
+  "params": [
+   "b64",
+   "data",
+   "max"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"data(base64) required\\\"}\""
+ },
+ {
+  "endpoint": "GET /intent",
+  "domain": "cap",
+  "comment": "================= 离线意图解析（v94） =================\nGET  /intent                     词表镜像 / 开关 / 上一句走了哪条路\nPOST /intent {\"test\":\"讲个故事\"}   只解析**不执行**：命中本地直通会回 local_reply，\n否则回 near（易混候选）与给模型的 hint。\n★ 这是远程验证纠错效果的主力 —— 不用在机器人旁边喊话\n就能看到\"这句话会被怎么处理\"。\nPOST /intent {\"on\":false}        关掉本地直通（全部交 AI）\nPOST /intent {\"reload\":true}     重读词表（换过 /sdcard/ledi_grammar.bsg 之后）",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /intent",
+  "domain": "cap",
+  "comment": "",
+  "params": [
+   "on"
+  ],
+  "hint": "IntentResolver.setLocalEnabled()"
+ },
+ {
+  "endpoint": "POST /intentrun",
+  "domain": "voice",
+  "comment": "POST /intentrun {\"text\":\"跳个舞\"}\n与 /intent 的区别：/intent **只判定**，这个**真执行**（和真人说这句话时\n走的是同一条路：本地直通 → applyAiTags 执行标签 → TTS 播报 → 落对话日志）。\n为什么需要它：本地直通的价值恰恰在\"动作有没有真的发生\"，只回一个\nlocal_reply 是假绿灯。有了它，整条链路可以坐在电脑前验收，不必守在机器人旁边喊。\n★ 会真的让机器人动起来 / 出声 / 改音量，调试用，别放进任何自动流程。",
+  "params": [
+   "text"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"text required\\\"}\""
+ },
+ {
+  "endpoint": "POST /kill",
+  "domain": "sys",
+  "comment": "",
+  "params": [],
+  "hint": "SleepMode.touch()"
+ },
+ {
+  "endpoint": "GET /kws",
+  "domain": "probe",
+  "comment": "---- v183：自建本地唤醒内核（MFCC + VAD + DTW） ----\n\n为什么要这几个端点：原厂百度引擎整族失效（KWS 与离线 ASR\n本轮实测 events=0），唤醒只能自己算。内核在 LocalWake 里，\n这里只做「喂文件、回数字」——**不在设备上写死模板**，\n因为模板必须来自真人，而真人得等用户在场地才能录。\n\nGET  /kws                 → 内核状态（模板数/模板帧长/参数）\nPOST /kws/clear           → 清空模板\nPOST /kws/train {\"files\":\"/sdcard/a.pcm,/sdcard/b.pcm\",\"delta\":true}\nPOST /kws/test  {\"pcm\":\"/sdcard/x.pcm\",\"stride\":5,\"delta\":true,\"band\":0.25}\nPOST /kws/probe {\"pcm\":\"/sdcard/x.pcm\"}\n★ probe 是**交叉对差**用的：它把帧数 / 能量指纹 / MFCC 指纹 /\nVAD 段都吐出来，PC 侧用 Python 参考实现算同样的东西逐层比。\n只比最后那个 DTW 距离，可能两层错误互相抵消；分层比才能定位。",
+  "params": [],
+  "hint": "Math.min()"
+ },
+ {
+  "endpoint": "POST /kws",
+  "domain": "probe",
+  "comment": "仅在屏保白名单，无独立派发分支",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /kws/clear",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"templates\\\":0}\""
+ },
+ {
+  "endpoint": "POST /kws/probe",
+  "domain": "probe",
+  "comment": "",
+  "params": [
+   "pcm"
+  ],
+  "hint": "return \"{\\\"ok\\\":false,\\\"error\\\":\\\"pcm= 必填\\\"}\""
+ },
+ {
+  "endpoint": "POST /kws/test",
+  "domain": "probe",
+  "comment": "",
+  "params": [
+   "active",
+   "band",
+   "delta",
+   "pcm",
+   "stride"
+  ],
+  "hint": "return \"{\\\"ok\\\":false,\\\"error\\\":\\\"pcm= 必填\\\"}\""
+ },
+ {
+  "endpoint": "POST /kws/train",
+  "domain": "probe",
+  "comment": "",
+  "params": [
+   "delta",
+   "files"
+  ],
+  "hint": "Arrays.sort()"
+ },
+ {
+  "endpoint": "GET /ledselftest",
+  "domain": "probe",
+  "comment": "★ v206：灯语自检（纯静态，8 种布尔组合穷举 + 收场口径）。",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(AgentService.ledSelftest()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /light",
+  "domain": "motion",
+  "comment": "================= 灯光（原厂系统广播） =================",
+  "params": [
+   "action",
+   "color"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(light(color, action)) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /listen",
+  "domain": "voice",
+  "comment": "================= 长期主动听（v202）=================\n★ 这是 /dialog {\"continuous\":true} 的\"可持久化\"版本：v75 起常识别本来就有，\n但开关只活在内存里（contRunning 是进程内 static），**重启就丢**。\n这里把\"要不要开机自动常听\"落进 prefs，onCreate 里读它决定要不要拉起。\n\nGET  /listen → {\"on\":进程内是否在听,\"autostart\":开机是否自动开,\"think\":是否多轮思考,\n\"grammar\":\"cmd|free|...\",\"engine\":...}\nPOST /listen {\"on\":true|false}        现在开/关（等价 POST /dialog {\"continuous\":...}）\nPOST /listen {\"autostart\":true|false} 开机是否自动常听（写 prefs）\nPOST /listen {\"grammar\":\"cmd|free\"}   常听时用哪份语法（写 prefs）\nPOST /listen {\"think\":true|false}     语音回复是否走多轮思考（写 prefs）\n★ 四个字段可**任意组合**一次下发；都不给就只回读（等价 GET）。",
+  "params": [
+   "autostart",
+   "grammar",
+   "on",
+   "think",
+   "workflow"
+  ],
+  "hint": "AgentService.persistListenAuto()"
+ },
+ {
+  "endpoint": "POST /listen",
+  "domain": "voice",
+  "comment": "================= 长期主动听（v202）=================\n★ 这是 /dialog {\"continuous\":true} 的\"可持久化\"版本：v75 起常识别本来就有，\n但开关只活在内存里（contRunning 是进程内 static），**重启就丢**。\n这里把\"要不要开机自动常听\"落进 prefs，onCreate 里读它决定要不要拉起。\n\nGET  /listen → {\"on\":进程内是否在听,\"autostart\":开机是否自动开,\"think\":是否多轮思考,\n\"grammar\":\"cmd|free|...\",\"engine\":...}\nPOST /listen {\"on\":true|false}        现在开/关（等价 POST /dialog {\"continuous\":...}）\nPOST /listen {\"autostart\":true|false} 开机是否自动常听（写 prefs）\nPOST /listen {\"grammar\":\"cmd|free\"}   常听时用哪份语法（写 prefs）\nPOST /listen {\"think\":true|false}     语音回复是否走多轮思考（写 prefs）\n★ 四个字段可**任意组合**一次下发；都不给就只回读（等价 GET）。",
+  "params": [
+   "autostart",
+   "grammar",
+   "on",
+   "think",
+   "workflow"
+  ],
+  "hint": "AgentService.persistListenAuto()"
+ },
+ {
+  "endpoint": "GET /listenface",
+  "domain": "voice",
+  "comment": "================= ★★★ v182：听语表情（\"两个麦克风\"） =================\nGET  /listenface → {\"on\":true,\"face\":\"recording\",\"active\":false,\"shown_now\":\"\",\"n\":N,\"last\":\"...\"}\nPOST /listenface {\"name\":\"recording\"}   → 换表情（\"off\" = 不播脸）\n\n★ 与 /listenled 完全同构，理由也一样：表情也是**硬件侧**的东西（全屏视频浮层），\n我们读不回\"用户到底看见了什么\"。所以把能自证的都摊出来：\n该播什么(face) / 此刻该不该播(active) / **现在脸上是谁**(shown_now) /\n下发了多少次(n) / 最近回执(last)。\"真机上到底出没出那两个麦克风\"仍要人眼看。\n★ 为什么 n 必须单列：万一挂点漏了（例如只挂麦闸、漏了 barge-in 那条路），\n外观上跟\"这功能没做出来\"一模一样。长会话里 n 必须随开麦次数往上涨。",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /listenface",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"need name=表情名（off = 不播脸；GET /faces 取清单）\\\"}\""
+ },
+ {
+  "endpoint": "GET /listenled",
+  "domain": "voice",
+  "comment": "================= 听语灯（v144 起；★ v167 改蓝灯） =================\nGET  /listenled  → {\"on\":true,\"active\":false,\"mode\":\"blue_on\",\"led\":\"b.on\",\"last\":\"...\"}\nPOST /listenled {\"mode\":\"blue_on|blue_blink|all_blink|off\"}\nPOST /listenled {\"on\":true|false}   ← v144 旧写法，等价 mode=默认 / off\n\n★ 为什么必须有这个端点：用户 09-24 的口径是「**取消主动推送，只靠 LED\n表示机器人在听**」—— 那\"灯到底亮没亮、现在还亮不亮\"就成了**唯一的\n行为判据**。判据不可观测，验收就只能靠人盯着机器人看、复现不了\n（假绿灯的典型土壤）。所以这里把四件事一起摊出来：\n应该亮吗(active) / 按哪个模式(mode) / 下发成什么(led) / 最近回执(last)。\n★ 灯本身是硬件、我们读不回来 ⇒ 这是软件侧能做到的极限：\nlast 里的 `sdk:xxx` 表示反射到了原厂静态方法，否则说明走了裸广播。\n\"到底亮没亮、是不是蓝的\"仍只能人眼看，问的时候要照这个问。\n★ 用户 09-25（高优先级）「机器人正在收听的时候头顶亮蓝灯」⇒ 默认 blue_on。\n保留 all_blink 是**回退路**：万一蓝灯在这台 ROM 上反射/广播都没反应，\n一条 POST 就能切回 v144 的行为，不必重新打包重装。",
+  "params": [],
+  "hint": "LED_MODE_OFF.equals()"
+ },
+ {
+  "endpoint": "POST /listenled",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "mode",
+   "on",
+   "speak_off"
+  ],
+  "hint": "AgentService.noteTtsSpeaking()"
+ },
+ {
+  "endpoint": "GET /live",
+  "domain": "sense",
+  "comment": "================= ★★★ v180/v186：活泼化（表情 / 动作） =================\n查：GET  /live\n配：POST /live {\"on\":true|false,\"idle_every\":3,\"idle_motion_every\":6}\non                —— 活泼总开关（唤醒呼应 / 应答兜底表情 / 待机微动 / 待机动作）\nidle_every        —— 待机换表情每 N 拍（一拍 = 唤醒引擎的 8 秒自检心跳），1 = 最勤\nidle_motion_every —— 待机动作每 N 拍，**0 = 关**；默认 6（约 48s 一次）\n\n★ 为什么把\"活泼\"做成可调而不是写死：它是**观感**类参数，真机上要人眼看。\n写死就意味着每调一次都得重打包装机 + 手工 am startservice ——\n这条在本机已经反复吃过亏（见 /listenled 的 mode 为什么也是可调的）。\n\n★ v186：两个池子不再在这里写死字面量，改从 AgentService 的数组现算\n（唯一真源；否则改代码不改字符串 ⇒ 端点对外撒谎）。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /live",
+  "domain": "sense",
+  "comment": "================= ★★★ v180/v186：活泼化（表情 / 动作） =================\n查：GET  /live\n配：POST /live {\"on\":true|false,\"idle_every\":3,\"idle_motion_every\":6}\non                —— 活泼总开关（唤醒呼应 / 应答兜底表情 / 待机微动 / 待机动作）\nidle_every        —— 待机换表情每 N 拍（一拍 = 唤醒引擎的 8 秒自检心跳），1 = 最勤\nidle_motion_every —— 待机动作每 N 拍，**0 = 关**；默认 6（约 48s 一次）\n\n★ 为什么把\"活泼\"做成可调而不是写死：它是**观感**类参数，真机上要人眼看。\n写死就意味着每调一次都得重打包装机 + 手工 am startservice ——\n这条在本机已经反复吃过亏（见 /listenled 的 mode 为什么也是可调的）。\n\n★ v186：两个池子不再在这里写死字面量，改从 AgentService 的数组现算\n（唯一真源；否则改代码不改字符串 ⇒ 端点对外撒谎）。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /logwin",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /logwin",
+  "domain": "probe",
+  "comment": "================= 屏幕日志浮层 =================\nPOST /logwin {\"on\":true,\"lines\":12,\"size\":10,\"x\":0,\"y\":0}\n把实时日志铺在机器人屏幕左下角，站着说话就能看见，不用再去拉 adb/HTTP。\n字段都可省；on 只有传 \"true\"/\"false\" 才改开关。状态见 GET /logwin。\nlayer / panel_layer 改窗口类型（phone|alert|overlay|priority|dialog|error|keyguard），\n用于真机上挑「既在原厂脸之上、又能点」的那一个 —— 类型是窗口属性，改了会重挂。",
+  "params": [
+   "follow",
+   "layer",
+   "lines",
+   "on",
+   "panel_layer",
+   "size",
+   "x",
+   "y"
+  ],
+  "hint": "LogOverlay.set()"
+ },
+ {
+  "endpoint": "POST /media",
+  "domain": "voice",
+  "comment": "================= newcore：媒体播放（音频/视频/图片/文字） =================",
+  "params": [
+   "data",
+   "kind",
+   "name",
+   "path"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"media not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /media/stop",
+  "domain": "voice",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"error\\\":\\\"media not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /memory",
+  "domain": "cap",
+  "comment": "================= ★★★ v214：长期记忆 + 忘记 =================\n查：GET  /memory  → 认识第几天、聊过几次、记着哪些事（含 brief 原文，便于对差）\n记：POST /memory {\"remember\":\"喜欢猫\"}          → 记一条事实（存机器人本地）\n忘：POST /memory {\"forget\":\"all|facts|talk\"}    → ★ 真删，返回里带回读字节证据\nPOST /memory {\"action\":\"forget\",\"scope\":\"facts\"}  ← 等价别名（给网页用）\n\n★ 为什么\"忘记\"要单开一个入口、且必须回读：只返回 {\"ok\":true} 的\"忘记\"是典型\n假绿灯 —— 删没删干净谁也不知道。Memory.forget 会把删完之后的**实际字节数**\n写进返回值，ok 由它算出来。真机验收就照这条问：忘完再 GET /memory、GET /talk，\n两处都必须空。",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"memory\\\":\" + Memory.json() + \"}\""
+ },
+ {
+  "endpoint": "POST /memory",
+  "domain": "cap",
+  "comment": "",
+  "params": [
+   "action",
+   "forget",
+   "remember",
+   "scope"
+  ],
+  "hint": "Memory.remember()"
+ },
+ {
+  "endpoint": "GET /memoryselftest",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(Memory.selftest()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /mic",
+  "domain": "voice",
+  "comment": "================= 麦克风 =================",
+  "params": [
+   "on",
+   "seconds"
+  ],
+  "hint": "Integer.parseInt()"
+ },
+ {
+  "endpoint": "GET /miclist",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /motion",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "MotionController.isValidMotion()"
+ },
+ {
+  "endpoint": "GET /motionconfig",
+  "domain": "motion",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"enabled\\\":\" + jsonList(enabledMotions()) + \"}\""
+ },
+ {
+  "endpoint": "POST /motionconfig",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "enabled",
+   "reset"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"reset all\\\"}\""
+ },
+ {
+  "endpoint": "GET /motions",
+  "domain": "motion",
+  "comment": "================= 动作 =================",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /motions_all",
+  "domain": "motion",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /motions_dance",
+  "domain": "motion",
+  "comment": "",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /motor",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "j1",
+   "j2",
+   "j3",
+   "ms"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"motorpose not init\\\"}\""
+ },
+ {
+  "endpoint": "GET /motordiag",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"error\\\":\\\"motorpose not init\\\"}\""
+ },
+ {
+  "endpoint": "GET /motorpos",
+  "domain": "motion",
+  "comment": "================= 电机姿态 + 调试面板（v147） =================\nGET  /motorpos       → 三个电机的【读回】位置（原厂状态广播）+ **换算角度** + 最近一次下发\nraw[3]=12 位编码器计数；ang[3]=按实测拟合换算出的角度（不可信 ⇒ null）\nPOST /motor {\"j1\":..,\"j2\":..,\"j3\":..,\"ms\":..} → 直接下发一帧姿态（角度域）\nGET  /motordiag      → 读回链路自检（类在不在 / 收了几帧 / 静态字段兜底结果）\nGET  /pad            → 调试面板状态\nPOST /pad {\"on\":true|false,\"x\":..,\"y\":..}   → 铺 / 摘面板、挪位置\n\n★★ 这四个**都不在屏保总闸的白名单里**，是刻意的：用户 2026-09-24 的原话是\n「**进入熄屏则停止返回 api**」。屏保期间它们一律返回 {\"error\":\"sleeping\"}。\n/motordiag 也一起挡 —— 它虽然只读，但\"只在清醒时可观测\"才是一致的口径，\n否则会出现\"屏保里能查到位置、可 API 说没有\"这种自相矛盾。\n（第二层闸在 MotorPose.setSleeping：屏保期间连广播接收器都摘掉。）",
+  "params": [],
+  "hint": "return \"{\\\"error\\\":\\\"motorpose not init\\\"}\""
+ },
+ {
+  "endpoint": "GET /motorrelease",
+  "domain": "motion",
+  "comment": "================= 解除锁定 / 释放舵机力矩（v153） =================\nGET  /motorrelease → 上一次释放的结果（含 1.5s 后补采的 after / delta_max）\nPOST /motorrelease → 立刻释放三个舵机的力矩（手掰得动）\n\n原厂通路（不是猜的）：EngineService.realeaseControl_All()（原厂就拼成 realease），\n内部发 0x1002 / 0x1001(obj=releaseIns) / 0x1003 三条消息，\nreleaseIns = \"FF FF FE FF FF FF FF FF FF 07\"。详见 MotorPose.release()。\n\n★ 与 /motor* 同一口径：**不在屏保白名单里** ⇒ 屏保期间一律 {\"error\":\"sleeping\"}。\n理由：释放力矩会让手臂位姿在无人看管时下垂，而屏保正是\"没人看\"的状态。",
+  "params": [],
+  "hint": "return \"{\\\"error\\\":\\\"motorpose not init\\\"}\""
+ },
+ {
+  "endpoint": "POST /motorrelease",
+  "domain": "motion",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"error\\\":\\\"motorpose not init\\\"}\""
+ },
+ {
+  "endpoint": "POST /name",
+  "domain": "sys",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "Presence.json()"
+ },
+ {
+  "endpoint": "GET /online",
+  "domain": "sense",
+  "comment": "---- v99：麦克风实时听写（把\"任意话\"接到真麦克风上） ----\n\n用法：\nGET  /online                 查\"在线优先\"开关\nPOST /online {\"on\":true}     开/关（默认开；关掉就只用离线 45 条命令词）\nPOST /ilisten {\"sec\":6}      开麦听一轮（阻塞），返回完整仪表 + text\n可选 silence=900（开口后静音多少 ms 收尾）\nloud=1200（人声 RMS 阈值；不传=前 240ms 环境噪声自动定）\n\n★ 为什么要有 /ilisten：对话链路（唤醒 → 听 → AI → 播报）是**一条长链**，\n直接在那里试错，\"哪一段坏的\"永远说不清。这个端点把链路砍到只剩\n「让麦 → 开麦 → 灌帧 → 收敛」——配合写回码直方图/rms/开口时刻，\n现场一次性就能定位。与 /iatest（文件输入）配合可一刀切开\n\"麦克风坏\" 与 \"云端拒绝/网络不通\"。",
+  "params": [
+   "on"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /online",
+  "domain": "sense",
+  "comment": "---- v99：麦克风实时听写（把\"任意话\"接到真麦克风上） ----\n\n用法：\nGET  /online                 查\"在线优先\"开关\nPOST /online {\"on\":true}     开/关（默认开；关掉就只用离线 45 条命令词）\nPOST /ilisten {\"sec\":6}      开麦听一轮（阻塞），返回完整仪表 + text\n可选 silence=900（开口后静音多少 ms 收尾）\nloud=1200（人声 RMS 阈值；不传=前 240ms 环境噪声自动定）\n\n★ 为什么要有 /ilisten：对话链路（唤醒 → 听 → AI → 播报）是**一条长链**，\n直接在那里试错，\"哪一段坏的\"永远说不清。这个端点把链路砍到只剩\n「让麦 → 开麦 → 灌帧 → 收敛」——配合写回码直方图/rms/开口时刻，\n现场一次性就能定位。与 /iatest（文件输入）配合可一刀切开\n\"麦克风坏\" 与 \"云端拒绝/网络不通\"。",
+  "params": [
+   "on"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /pad",
+  "domain": "sense",
+  "comment": "★ v148：调试控件（触摸 / 陀螺仪 / 电机滑条）已并入 log 面板，\n/pad 保留为\"打开带控件的 log 面板\"的入口，与 /logwin 同义 ——\n旧脚本还在用它，所以不能删；语义统一到 LogOverlay 这一个事实源。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /pad",
+  "domain": "sense",
+  "comment": "",
+  "params": [
+   "lines",
+   "on",
+   "size",
+   "x",
+   "y"
+  ],
+  "hint": "return LogOverlay.statusJson()"
+ },
+ {
+  "endpoint": "GET /pan",
+  "domain": "motion",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"status\\\":\" + BtPan.statusJson(ctx) + \"}\""
+ },
+ {
+  "endpoint": "POST /pan",
+  "domain": "motion",
+  "comment": "蓝牙网络共享（没有 WiFi 时的兜底链路）：机器人开这个才变成 192.168.44.1，\n电脑端才加得进它的个人区域网。不带参数 = 开；{\"on\":false} = 关。",
+  "params": [
+   "on"
+  ],
+  "hint": "BtPan.setTethering()"
+ },
+ {
+  "endpoint": "POST /pose",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "name",
+   "run",
+   "spec"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(r) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /posedel",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(pose.remove(field(body, query, \"name\"))) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /poseread",
+  "domain": "probe",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "return \"{\\\"content\\\":\\\"\" + J.esc(pose.read(field(body, query, \"name\"))) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /poserun",
+  "domain": "motion",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(pose.run(field(body, query, \"name\"))) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /poses",
+  "domain": "motion",
+  "comment": "================= 姿态 =================",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /presence",
+  "domain": "sense",
+  "comment": "================= 在线状态 / 名字（v142） =================\nGET  /presence                          → 在线状态 + 连续听不懂几次 + 名字\nPOST /presence {\"offline\":true|false}   → 手动进/出离线模式（验收用）\nPOST /presence {\"miss_streak\":0}        → 只把计数归零，不改离线状态\nPOST /name {\"name\":\"小乐\"}              → 改名（三端同写这一个键）\nPOST /name {\"probe_sec\":45}             → 离线时的名字探测周期（0=关，默认关）\nPOST /name {\"miss_limit\":4}             → 连错几次算离线（1..5，默认 3）\n\n★ 三端同步是怎么成立的：手机端、电脑端、以及\"对机器人说话\"三条路，\n最终都写同一个 prefs 键（Presence.setName → \"robot_name\"）。\n所以不存在\"三份名字要对表\"这种事 —— **只有一份**，读的也是同一份。\n⚠ 但必须如实告诉用户边界：**自定义名字改不了声学唤醒词**。\n证据：/data/data/com.ledi.agent/files/WakeUp.bin 是 32 条完全相同的\n40 字节记录（一个固定模板，不是可改的词表），离线 ASR 词表同理固化在\nlibbd_easr_*.dat.so。名字真正生效的三处是：①显示与自称 ②识别文本里\n\"点名叫它\"的匹配 ③离线模式下按 probe_sec 打开的低频在线探测（默认关，\n因为它要花配额 —— 正是用户最在意的那个东西）。见 Presence 类注释的详述。",
+  "params": [],
+  "hint": "return Presence.json(ctx)"
+ },
+ {
+  "endpoint": "POST /presence",
+  "domain": "sense",
+  "comment": "",
+  "params": [
+   "offline"
+  ],
+  "hint": "Presence.json()"
+ },
+ {
+  "endpoint": "GET /programmer",
+  "domain": "probe",
+  "comment": "仅在屏保白名单，无独立派发分支",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "GET /ptalk",
+  "domain": "voice",
+  "comment": "================= newcore：主动说话（事件+定时） =================",
+  "params": [],
+  "hint": "return ptalk == null ? \"{\\\"error\\\":\\\"ptalk not ready\\\"}\" : ptalk.json()"
+ },
+ {
+  "endpoint": "POST /ptalk",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "event",
+   "idle",
+   "on",
+   "quiet_sec"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"ptalk not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /recadir",
+  "domain": "probe",
+  "comment": "---- v183：自建唤醒的数据采集器 ----\n\n查：GET  /recadir                             → 目录清单（名+字节），核对传输完整性\n采：POST /recaudio {\"sec\":6,\"name\":\"pos1\"}    → 录一段 16k/单声道/16bit 原始 PCM\n落 /sdcard/ledi_kws/<name>.pcm + 同名 .json（峰值/RMS/削顶/静音/时长）\n★ v185 加 src= —— 选 android 音频源（1=MIC / 6=VOICE_RECOGNITION /\n7=VOICE_COMMUNICATION / 5=CAMCORDER / 1998=UNPROCESSED / 0=DEFAULT）。\n为什么必须能选：本机 MIC 源带 AEC+NS+AGC（证据见 recordRaw 的注释），\nAEC 会把\"机器人自己喇叭的声音\"完全抵消 ⇒ 自回环永远录不到东西；\nAGC 会让电平与源电平脱钩 ⇒ 峰值判据失效。要拿线性可复现的录音，\n得走不带语音处理的源。不传该字段 = 沿用 MIC（行为与旧版一致）。\n\n★ 为什么要一个专门的采集端点：原厂那套百度离线引擎（KWS + 离线 ASR）\n在本机整族失效（KWS 与离线 ASR 本轮实测 events=0），\n唤醒只能自建 —— 而自建算法的第一块砖就是**带标签的真实音频**。\n这个 ROM 是裸机、没有原厂录音 App，采集器必须自己提供。\n★ 采集是\"收声\"不是\"发声\"：不撕屏保，所以放行（见上面的白名单）。",
+  "params": [],
+  "hint": "VoiceWakeController.kwsDirList()"
+ },
+ {
+  "endpoint": "POST /recaudio",
+  "domain": "probe",
+  "comment": "",
+  "params": [
+   "name",
+   "sec",
+   "src"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /revive",
+  "domain": "sys",
+  "comment": "================= 复活通道 / 死给谁看（v134） =================\nGET  /revive              → 复活账本：本进程是被**谁**拉起来的、停机多久、\n各通道各救过几次、最近 6 次记录\nPOST /revive {\"in_s\":45}  → 排一个 45s 后的**精确唤醒闹钟**（验收用）\nPOST /revive {\"period_s\":40} → 把常驻心跳周期临时改成 40s（验收用；\n★ 验完记得 {\"period_s\":180} 改回来）\nPOST /kill {\"yes\":true}   → ★ 立刻 SIGKILL 自己（验收用，见下）\n\n★ 为什么必须有 /kill：兜底机制的唯一权威判据是\"**真死了之后能不能回来**\"。\n能模拟\"真死\"的只有它 ——\n· `am force-stop` 会把包标成 stopped：按键广播（FLAG_EXCLUDE_STOPPED_PACKAGES）\n收不到、闹钟被清 ⇒ 测出来的是\"系统禁止我活\"，不是我们的兜底；\n· `pm disable` 会被系统当\"用户明确禁用\"，不是干净的死法。\nSIGKILL 自己 = 最接近 native 崩溃 / LMK 被杀的那种死法，不留任何\n\"禁止重启\"的标记。先回包、400ms 后再死，否则调用方只会看到连接被重置。\n★ 2026-09-23 实测更正：早先我把那 13 分钟的停机归因于\"pm disable 把进程打死\"，\n**这条是错的** —— 本次复现 {pm disable com.ledi.agent/.BrainHome} 返回\n`new state: disabled` 而 pid **没变**、8899 照样通。那次真因至今未定。",
+  "params": [],
+  "hint": "return ReviveLog.statusJson(ctx)"
+ },
+ {
+  "endpoint": "POST /revive",
+  "domain": "sys",
+  "comment": "",
+  "params": [],
+  "hint": "SleepMode.touch()"
+ },
+ {
+  "endpoint": "GET /rotation",
+  "domain": "media",
+  "comment": "---- v63：屏幕朝向锁 ----\n查：GET /rotation\n配：POST /rotation {\"on\":false}          —— 放开自动旋转（默认锁横向）\nPOST /rotation {\"value\":0}          —— 0/1/2/3 = 0°/90°/180°/270°\nPOST /rotation {\"apply\":true}       —— 立刻纠一次",
+  "params": [
+   "on",
+   "value"
+  ],
+  "hint": "Boolean.valueOf()"
+ },
+ {
+  "endpoint": "POST /rotation",
+  "domain": "media",
+  "comment": "---- v63：屏幕朝向锁 ----\n查：GET /rotation\n配：POST /rotation {\"on\":false}          —— 放开自动旋转（默认锁横向）\nPOST /rotation {\"value\":0}          —— 0/1/2/3 = 0°/90°/180°/270°\nPOST /rotation {\"apply\":true}       —— 立刻纠一次",
+  "params": [
+   "on",
+   "value"
+  ],
+  "hint": "Boolean.valueOf()"
+ },
+ {
+  "endpoint": "POST /say",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "engine",
+   "text",
+   "url"
+  ],
+  "hint": "return say(text, url, eng)"
+ },
+ {
+  "endpoint": "POST /sdk/bpm",
+  "domain": "sdk",
+  "comment": "",
+  "params": [
+   "bpm"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"sdk not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /sdk/caps",
+  "domain": "sdk",
+  "comment": "================= 原厂 SDK 直调（xldbasesdk） =================\n与 /motion、/light 的区别：这里走原厂自己的 API（含序列、节奏、电源、ADB），\n不是我们重写的通道。见 SdkController 的类注释。",
+  "params": [],
+  "hint": "return sdk == null ? \"{\\\"error\\\":\\\"sdk not ready\\\"}\" : sdk.caps()"
+ },
+ {
+  "endpoint": "POST /sdk/dance",
+  "domain": "sdk",
+  "comment": "",
+  "params": [
+   "name"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"sdk not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /sdk/events",
+  "domain": "sdk",
+  "comment": "",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /sdk/flag",
+  "domain": "sdk",
+  "comment": "",
+  "params": [
+   "battery_low"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"sdk not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /sdk/forceready",
+  "domain": "sdk",
+  "comment": "",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /sdk/led",
+  "domain": "sdk",
+  "comment": "",
+  "params": [
+   "action",
+   "color"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"sdk not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /sdk/listen",
+  "domain": "sdk",
+  "comment": "",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /sdk/release",
+  "domain": "sdk",
+  "comment": "",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /sdk/run",
+  "domain": "sdk",
+  "comment": "",
+  "params": [
+   "name",
+   "speed"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"sdk not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /sdk/series",
+  "domain": "sdk",
+  "comment": "",
+  "params": [
+   "delay"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"sdk not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /sdk/stat",
+  "domain": "sdk",
+  "comment": "",
+  "params": [],
+  "hint": "return sdk == null ? \"{\\\"error\\\":\\\"sdk not ready\\\"}\" : sdk.stat()"
+ },
+ {
+  "endpoint": "POST /sdk/stop",
+  "domain": "sdk",
+  "comment": "",
+  "params": [],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /sdk/sys",
+  "domain": "sdk",
+  "comment": "",
+  "params": [
+   "what"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"sdk not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /sensorquery",
+  "domain": "sense",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"result\\\":\\\"queried\\\"}\""
+ },
+ {
+  "endpoint": "GET /sensors",
+  "domain": "sense",
+  "comment": "================= 传感器 / 开关（新增） =================",
+  "params": [],
+  "hint": "return sensor == null ? \"{\\\"error\\\":\\\"sensor not ready\\\"}\" : sensor.json()"
+ },
+ {
+  "endpoint": "GET /sensorsummary",
+  "domain": "sense",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"summary\\\":\\\"\" + J.esc(sensor == null ? \"\" : sensor.summary()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /sethome",
+  "domain": "media",
+  "comment": "",
+  "params": [
+   "restore"
+  ],
+  "hint": "return HomeSetter.restore(ctx)"
+ },
+ {
+  "endpoint": "GET /shell",
+  "domain": "sys",
+  "comment": "================= 远程 shell（手机端自动化 + adb 逃生舱）=================\nGET  /shell                        -> 开关状态\nPOST /shell {\"cmd\":\"...\"}          -> 以 uid=1000(system) 跑一条命令\nPOST /shell {\"cmd\":\"...\",\"root\":1} -> 走 su -c 以 root 跑\nPOST /shell {\"on\":true|false}      -> 开/关这个端点\n安全说明见 Shell 类注释：本机 5555 本来就对同网段开放 root shell，\n所以这不新增暴露面；但仍然可以关掉。",
+  "params": [],
+  "hint": "return \"{\\\"enabled\\\":\" + Shell.enabled(ctx) + \"}\""
+ },
+ {
+  "endpoint": "POST /shell",
+  "domain": "sys",
+  "comment": "",
+  "params": [
+   "cmd",
+   "on"
+  ],
+  "hint": "return \"{\\\"enabled\\\":\" + Shell.enabled(ctx) + \"}\""
+ },
+ {
+  "endpoint": "GET /sleep",
+  "domain": "ui",
+  "comment": "================= 屏保 / 休息 =================\nGET  /sleep                            → 状态\nPOST /sleep {\"on\":true,\"bright\":1.0}   → 铺满图 + 闸住功能（bright 缺省=1.0 不压暗）\nPOST /sleep {\"on\":false}               → 叫醒\nPOST /sleep {\"img\":\"<base64>\"}         → 只上传/更换屏保图片",
+  "params": [],
+  "hint": "return \"{\\\"sleep\\\":\" + SleepMode.json(ctx) + \"}\""
+ },
+ {
+  "endpoint": "POST /sleep",
+  "domain": "ui",
+  "comment": "屏保 / 深睡控制（内联块，不经查表派发）",
+  "params": [
+   "data",
+   "img"
+  ],
+  "hint": "SleepMode.json()"
+ },
+ {
+  "endpoint": "GET /status",
+  "domain": "sys",
+  "comment": "",
+  "params": [],
+  "hint": "BluetoothAdapter.getDefaultAdapter()"
+ },
+ {
+  "endpoint": "POST /stop",
+  "domain": "motion",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"result\\\":\\\"\" + J.esc(motion.stop()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /switch",
+  "domain": "sys",
+  "comment": "",
+  "params": [],
+  "hint": "return reaction == null ? \"{\\\"error\\\":\\\"reaction not ready\\\"}\" : reaction.json()"
+ },
+ {
+  "endpoint": "POST /switch",
+  "domain": "sys",
+  "comment": "",
+  "params": [
+   "ai",
+   "native"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"reaction not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /talk",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "n"
+  ],
+  "hint": "return TalkLog.tailJson(n)"
+ },
+ {
+  "endpoint": "POST /talk",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "action"
+  ],
+  "hint": "return TalkLog.clear()"
+ },
+ {
+  "endpoint": "GET /talk/status",
+  "domain": "voice",
+  "comment": "================= 长期对话日志 / 多轮记忆（v93） =================\nGET  /talk?n=50       机器人本地那份对话流水（每条带 tid，可与电脑端对照）\nGET  /talk/status     记忆有多长、落盘在哪、上一次记了什么\nPOST /talk {\"action\":\"clear\"}   只清内存环，磁盘 jsonl 留着翻账\n为什么要在机器人本地也留一份：走直连时电脑端只有机器人\"主动推\"的那一份，\n没连电脑/没网时就一寸证据都没有；而且大模型的\"记忆\"就是从这里回填的。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /thaw",
+  "domain": "sys",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":\" + ok + \",\\\"freezer\\\":\" + ProcessFreezer.statusJson() + \"}\""
+ },
+ {
+  "endpoint": "GET /think",
+  "domain": "cap",
+  "comment": "================= 多轮思考（v202）=================\nGET  /think?goal=...&rounds=3     跑一次多轮思考（模型可先要状态/让机器人做动作，再回答）\nPOST /think {\"goal\":\"...\",\"rounds\":3}\nPOST /think {\"think_on\":true|false}   只切\"语音回复是否走多轮思考\"（不跑）\n★ 这是**独立于语音链路**的入口：语音那条在 AgentService.replyForAI 里\n按 thinkOn 分流，这里让\"网页/脚本\"能直接驱动同一台引擎（同一套 Thinking.run）。\n★ 模型协议：它输出的每一行要么是 `TOOL 名 参数`（执行后结果喂回去继续想），\n要么是 `FINAL 最终话`（就结束）。白名单工具见 Thinking.deviceToolBox()\n—— **不含任何破坏性动作**（关机/重启/关ADB/关网关都不在里面）。\n★ 失败一律**降级不抛**：返回 ok:false + trace，调用方自己决定怎么办。",
+  "params": [
+   "goal",
+   "rounds",
+   "think_on"
+  ],
+  "hint": "return \"{\\\"ok\\\":false,\\\"error\\\":\\\"ai not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /think",
+  "domain": "cap",
+  "comment": "================= 多轮思考（v202）=================\nGET  /think?goal=...&rounds=3     跑一次多轮思考（模型可先要状态/让机器人做动作，再回答）\nPOST /think {\"goal\":\"...\",\"rounds\":3}\nPOST /think {\"think_on\":true|false}   只切\"语音回复是否走多轮思考\"（不跑）\n★ 这是**独立于语音链路**的入口：语音那条在 AgentService.replyForAI 里\n按 thinkOn 分流，这里让\"网页/脚本\"能直接驱动同一台引擎（同一套 Thinking.run）。\n★ 模型协议：它输出的每一行要么是 `TOOL 名 参数`（执行后结果喂回去继续想），\n要么是 `FINAL 最终话`（就结束）。白名单工具见 Thinking.deviceToolBox()\n—— **不含任何破坏性动作**（关机/重启/关ADB/关网关都不在里面）。\n★ 失败一律**降级不抛**：返回 ok:false + trace，调用方自己决定怎么办。",
+  "params": [
+   "goal",
+   "rounds",
+   "think_on"
+  ],
+  "hint": "return \"{\\\"ok\\\":false,\\\"error\\\":\\\"ai not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /thinkselftest",
+  "domain": "probe",
+  "comment": "纯静态自检：不吃 Context、不联网、不碰 org.json —— 只算数字，随时可跑。",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(Thinking.selftest()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "GET /tone",
+  "domain": "cap",
+  "comment": "================= 调性（v143 成人化） =================\nGET  /tone                                    → 当前档位 + **实际生效的每一句原文**\nPOST /tone {\"level\":\"adult|neutral|child\"}    → 换档\nPOST /tone {\"addr\":\"你\"}                      → 它怎么称呼用户\nPOST /tone {\"pat_line\":true|false}            → 摸头顶要不要出声\nPOST /tone {\"pat_speak\":true|false}           → 出声之后要不要等它播完再听\n\n★ 为什么 GET 要把人格提示词与每一句台词**整段打出来**：\n成人化的验收是主观的（\"听着像不像在跟成年人说话\"），没有对照就只能凭印象。\n把\"当前实际生效的原文\"直接摊在眼前，才能一眼看出改了没有、改到哪一档；\n否则验完只剩一句\"感觉好像好点了\"，等于没验。\n★ 为什么允许 level=child：那是**改造前的原文**，是 A/B 的基准，\n也是改坏时一键回退的路（见 Tone.persona 的注释）。",
+  "params": [],
+  "hint": "return Tone.json()"
+ },
+ {
+  "endpoint": "POST /tone",
+  "domain": "cap",
+  "comment": "",
+  "params": [
+   "addr",
+   "custom_clause",
+   "custom_name",
+   "delcustom",
+   "level",
+   "pat_line",
+   "pat_speak",
+   "style"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"自定义性格需要 custom_name 与 custom_clause 都给\\\"}\""
+ },
+ {
+  "endpoint": "GET /toneselftest",
+  "domain": "probe",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(Tone.selftest()) + \"\\\"}\""
+ },
+ {
+  "endpoint": "POST /touchtest",
+  "domain": "probe",
+  "comment": "---- v63：触摸自测（机器人给自己发原厂触摸广播）----\n为什么要这个：真机上没法\"点一下左脸\"来验证链路，而 adb 的 am broadcast\n在这台 ROM 上**不会返回**（它在等永远不会来的结果接收者），脚本直接卡死。\n让 App 自己 sendBroadcast 一发，就能走完整条\n「广播 → SensorHub → 方位感知 → 转头」而完全不依赖 adb。\n{\"action\":\"l\"} / {\"action\":\"r\"} / {\"action\":\"head\"}  —— 简写\n或直接给完整 action 名\n{\"action\":\"l\",\"times\":5,\"gap_ms\":120}                  —— **连发**模式\n为什么要连发：从电脑侧循环调用这个接口，\"连击\"根本连不起来 ——\n每次 HTTP 往返就要几百毫秒到 1 秒，5 次会摊开成 4 秒多，那已经不算\n\"一次连摸\"了，测不出命令叠加。连发让机器人在**本机**把广播快速打出去，\n才是真实的\"一次触摸被原厂推成一串 down\"的现场。",
+  "params": [
+   "action",
+   "gap_ms",
+   "times"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"action required: l|r|head|完整action\\\"}\""
+ },
+ {
+  "endpoint": "POST /tts",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "engine",
+   "text",
+   "url"
+  ],
+  "hint": "return say(text, url, eng)"
+ },
+ {
+  "endpoint": "GET /ttsstatus",
+  "domain": "voice",
+  "comment": "================= 说话 / 机器人自带语音合成 =================",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /ttsstop",
+  "domain": "voice",
+  "comment": "",
+  "params": [],
+  "hint": "return \"{\\\"result\\\":\\\"stopped\\\"}\""
+ },
+ {
+  "endpoint": "GET /vocab",
+  "domain": "voice",
+  "comment": "---- v53：唤醒词表热替换（换词不必重装 APK） ----\n查：GET  /vocab\n换：POST /vocab {\"preset\":\"full\"}        三档：base / safe / full\nPOST /vocab {\"words\":\"你好,乐迪,超级飞侠\"}   自定义\n复位：POST /vocab {\"reset\":true}          丢掉外部词表，回落到 APK 内嵌那份",
+  "params": [],
+  "hint": "return voiceWake == null ? \"{\\\"error\\\":\\\"wake not ready\\\"}\" : voiceWake.vocabularyInfo()"
+ },
+ {
+  "endpoint": "POST /vocab",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "preset",
+   "reset",
+   "words"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /volume",
+  "domain": "voice",
+  "comment": "================= 音量（v198；屏幕亮度已于 v201 移除）=================\nGET  /volume                读当前音量与上限\nPOST /volume {\"v\":8}        设绝对值（也认老名字 {\"n\":8}）\nPOST /volume {\"delta\":2}    相对调整（语音\"声音大一点\"就是这条）\n\n★ 语音本地直通（IntentResolver）走的是**同一个** Av 出口，\n所以\"网页调的和语音调的\"必然一致，不存在两套实现分叉。\n★★ v201：原来这里还有 `GET/POST /bright`，已按用户要求**整体移除** ——\n本机背光物理不可调，那套实现只是把**画面**叠一层黑压暗（能变暗但**不省电**），\n而且很容易把屏幕留在暗屏上（实测就被留在了 level=10）。\n随之，语法里那 6 句\"亮一点/暗一点…\"不再本地直通（回落到 AI，与 v198 之前一致）。",
+  "params": [],
+  "hint": ""
+ },
+ {
+  "endpoint": "POST /volume",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "delta",
+   "n",
+   "v"
+  ],
+  "hint": "return Av.adjust(intOr(d, 0))"
+ },
+ {
+  "endpoint": "POST /wake",
+  "domain": "voice",
+  "comment": "",
+  "params": [
+   "on"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "GET /wakestatus",
+  "domain": "voice",
+  "comment": "================= 语音唤醒（百度离线唤醒词） =================",
+  "params": [],
+  "hint": "return voiceWake == null ? \"{\\\"error\\\":\\\"wake not ready\\\"}\" : voiceWake.status()"
+ },
+ {
+  "endpoint": "POST /waketest",
+  "domain": "probe",
+  "comment": "离线唤醒体检：自己录 PCM 直接喂唤醒解码器，绕开喇叭/AEC，用于定性\"喊话到底能不能被识别\"\n用法：POST /waketest {\"sec\":6}  —— 请求会阻塞 sec 秒，期间对着机器人喊「哈喽乐迪」\n\n★ v181 起加 pcm= / gain= —— **回灌**设备上的裸 PCM（16k/16bit/mono）。\n用途：把\"距离 / 音量 / 房间混响\"三个变量一次锁死，只扫数字增益，\n从而确定性回答\"这个解码器在真人语音上到底还能不能命中\"。\n例：POST /waketest {\"pcm\":\"/sdcard/hl_human.pcm\",\"gain\":4}",
+  "params": [
+   "gain",
+   "pcm",
+   "sec"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"wake not ready\\\"}\""
+ },
+ {
+  "endpoint": "POST /wifi",
+  "domain": "sys",
+  "comment": "",
+  "params": [
+   "pass",
+   "ssid"
+  ],
+  "hint": "return \"{\\\"error\\\":\\\"ssid required\\\"}\""
+ },
+ {
+  "endpoint": "GET /workflow",
+  "domain": "cap",
+  "comment": "================= 简易 workflow（v203）=================\nGET  /workflow                     → 最近一次执行的流水 + 是否在跑\nGET  /workflow?list=1              → 设备上已保存的流程列表\nGET  /workflow?read=名字           → 读一份流程原文\nPOST /workflow {\"text\":\"…\"}        → 预检并**同步**执行（网页/脚本用；会等它跑完）\nPOST /workflow {\"text\":\"…\",\"async\":true} → 预检后**后台**跑（不占 HTTP 线程）\nPOST /workflow {\"save\":\"名字\",\"text\":\"…\"} → 保存（写入前必预检，不合法整份拒绝）\nPOST /workflow {\"del\":\"名字\"}      → 删除\nPOST /workflow {\"rollback\":true,\"volume\":5,\"face\":happy1} → 回滚（如实报告能回滚什么）\n★ 步骤白名单见 Workflow.ALLOWED；破坏性 op 被**明确拒绝**（见 Workflow.FORBIDDEN）。\n★ 一步失败即**中止整条**（不硬着头皮往下跑），执行流水单独落盘到\n/sdcard/ledi_workflow_run.log。",
+  "params": [
+   "async",
+   "del",
+   "list",
+   "read",
+   "rollback",
+   "save",
+   "text"
+  ],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "POST /workflow",
+  "domain": "cap",
+  "comment": "================= 简易 workflow（v203）=================\nGET  /workflow                     → 最近一次执行的流水 + 是否在跑\nGET  /workflow?list=1              → 设备上已保存的流程列表\nGET  /workflow?read=名字           → 读一份流程原文\nPOST /workflow {\"text\":\"…\"}        → 预检并**同步**执行（网页/脚本用；会等它跑完）\nPOST /workflow {\"text\":\"…\",\"async\":true} → 预检后**后台**跑（不占 HTTP 线程）\nPOST /workflow {\"save\":\"名字\",\"text\":\"…\"} → 保存（写入前必预检，不合法整份拒绝）\nPOST /workflow {\"del\":\"名字\"}      → 删除\nPOST /workflow {\"rollback\":true,\"volume\":5,\"face\":happy1} → 回滚（如实报告能回滚什么）\n★ 步骤白名单见 Workflow.ALLOWED；破坏性 op 被**明确拒绝**（见 Workflow.FORBIDDEN）。\n★ 一步失败即**中止整条**（不硬着头皮往下跑），执行流水单独落盘到\n/sdcard/ledi_workflow_run.log。",
+  "params": [
+   "async",
+   "del",
+   "list",
+   "read",
+   "rollback",
+   "save",
+   "text"
+  ],
+  "hint": "J.esc()"
+ },
+ {
+  "endpoint": "GET /workflowselftest",
+  "domain": "probe",
+  "comment": "纯静态自检（不联网、不碰 org.json，只算数字）。",
+  "params": [],
+  "hint": "return \"{\\\"ok\\\":true,\\\"report\\\":\\\"\" + J.esc(Workflow.selftest()) + \"\\\"}\""
+ }
+]

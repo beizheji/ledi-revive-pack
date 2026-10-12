@@ -1,0 +1,59 @@
+乐迪智能机器人 · 公开版 刷机说明
+================================
+
+【这是什么】
+  一份「只刷 BOOT 分区」的刷机包，BOOT 镜像取自市面通用版 boot.img（v8）。
+  刷入后，机器人开机即带：
+    - ADB：免授权，adbd 以 root 运行，USB 与 WiFi 5555 双通道
+    - MTP 便携设备：电脑资源管理器里直接浏览内部存储 /data/media/0
+    - U 盘模式：一个 512MB 的 LEDISK 交换盘
+    - root FTP 文件服务：端口 2121（登录凭据不在本包内，见下面「安全提示」）
+
+【包内文件】
+  boot.img                      要刷入的 BOOT 分区镜像
+  MT6580_Android_scatter.txt    分区表（SP Flash Tool 靠它定位分区）
+
+【刷入步骤】(SP Flash Tool)
+  1. 先装 MTK 驱动（Mediatek Driver Auto Installer）。
+  2. 打开 SP Flash Tool -> Download 页签 -> 选 scatter 文件 MT6580_Android_scatter.txt。
+  3. 只勾 BOOT 一项，其余一律不勾。
+  4. 点 Download，然后给机器人断电再上电（或直接插 USB）。
+  5. 等出现绿色对勾，拔线，正常开机。
+
+【刷前必读】
+  * 本包只含 BOOT，不含 system / userdata，不会清你的数据。
+  * 但刷错分区或中途断电可能导致无法开机，请自行评估风险。
+  * 刷完开机后 adb 立即可用：adb connect <机器人IP>:5555
+
+【root adb + FTP 是「要的」——它们是复活的入口】
+  * 这颗 boot.img 会开机自启一个 root 权限的 FTP 服务（监听 0.0.0.0:2121），
+    并且 ADB 免授权、adbd 是 root —— 这正是复活一台报废机的前提：
+    原厂把控制权焊死，只有先拿回 adb / 文件通道，才能装自己的 App、传素材、改配置。
+  * 换句话说：这两条不是"漏洞"，是这颗 BOOT 存在的理由。刷上它，机器人才重新"可动"。
+  * FTP 的登录凭据来自 /system/etc/passwd。原厂 system 里没有 root 登录项，
+    所以在「只刷 BOOT、不动 system」的情况下 FTP 通常登不进去；
+    一旦你手动往 /system/etc/passwd 写 root 项，就等于把机器人整个文件系统
+    以 root 暴露在局域网上（FTP 本身还是明文协议）。
+  * 使用边界：请只在家庭内网使用，绝不要暴露到公网；
+    不需要 FTP 就不要往 /system/etc/passwd 写 root 项。
+  * 想收回这套能力：直接刷回原厂 boot.img 即可 —— 本包没有动
+    bootloader / lk，不存在锁死风险。
+
+【与原厂 boot.img 的差异（逐条，可复核）】
+  default.prop        ro.adb.secure   1 -> 0
+                      ro.secure       1 -> 0
+                      ro.debuggable   0 -> 1
+                      persist.sys.usb.config  mass_storage -> mtp,mass_storage,adb
+                      新增 service.adb.tcp.port=5555
+  init.usb.rc         任何 persist.sys.usb.config 旧值 -> 强制转组合模式（开机必经路径）
+  init.rc             加载持久属性后无条件改写持久值本身（兜底防框架回切）
+  init.project.rc     新增 ftpd 服务（tcpsudo，root，0.0.0.0:2121，整机根目录可读写）
+  init.mt6580.usb.rc  USB 组合相关调整
+  kernel 与其余 ramdisk 条目：与原厂逐字节一致
+
+【校验值】
+  boot.img                    6650138 字节
+                              md5 34c0a9a7665895ec45d20aa91f0e5f07
+  MT6580_Android_scatter.txt  10326 字节
+                              md5 c24bf96d3a5b9c66170410f8c427b2b5
+  （对不上就别刷——包被改过或没下全。详细取证见根目录 脱敏报告.md）
